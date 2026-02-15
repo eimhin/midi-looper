@@ -1,0 +1,9 @@
+CompileFlags:
+  Add:
+    - -std=c++11
+    - -I.
+    - -I./include
+    - -I./distingNT_API/include
+    - -fno-rtti
+    - -fno-exceptions
+    - -Wall

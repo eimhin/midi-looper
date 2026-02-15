@@ -1,293 +1,365 @@
 /*
- * MIDI Looper - distingNT Plugin
+ * MIDI Looper v3 - distingNT Plugin
  *
- * A MIDI looper plugin for the disting NT.
+ * 4-track MIDI step recorder/sequencer with quantized recording and independent
+ * track lengths, directions, and output channels.
+ *
+ * FEATURES:
+ * - 4 independent MIDI tracks with separate lengths (1-128 steps), divisions, and output channels
+ * - Quantized step recording with configurable snap threshold
+ * - Replace or Overdub recording modes
+ * - MIDI pass-through from input to active track's output channel
+ * - Up to 8 polyphonic note events per step with duration tracking
+ * - State persistence (track data survives preset save/load)
+ * - 12 playback directions per track
+ * - Continuous modifiers (Stability, Motion, Randomness, Gravity, Pedal)
+ * - Binary modifiers (No Repeat, Step Mask)
+ * - Read modes (Single, Arp N, Growing, Shrinking, Pedal Read)
+ *
+ * Inputs:
+ * - In1: Run gate (rising edge resets and starts; falling edge stops)
+ * - In2: Clock trigger (advances step position)
+ *
+ * Copyright (c) 2025 Eimhin Rooney
  */
 
-#include <distingnt/api.h>
 #include <cstring>
 #include <new>
 
-// ============================================================================
-// CONSTANTS
-// ============================================================================
-
-// MIDI status bytes
-static constexpr uint8_t kMidiNoteOff = 0x80;
-static constexpr uint8_t kMidiNoteOn = 0x90;
-
-// Note names for display
-static const char* const noteNames[] = {
-    "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"
-};
-
-// Channel filter options
-static const char* const channelNames[] = {
-    "All", "1", "2", "3", "4", "5", "6", "7", "8",
-    "9", "10", "11", "12", "13", "14", "15", "16", NULL
-};
-
-// Display mode options
-static const char* const displayModeNames[] = {
-    "Note Name", "Note Number", NULL
-};
+// Module headers
+#include "midilooper/types.h"
+#include "midilooper/params.h"
+#include "midilooper/midi.h"
+#include "midilooper/ui.h"
+#include "midilooper/serial.h"
+#include "midilooper/playback.h"
 
 // ============================================================================
-// PARAMETERS
+// SPECIFICATIONS
 // ============================================================================
 
-enum {
-    // Main page parameters
-    kParamMidiChannel,      // Channel filter (0=all, 1-16=specific)
-    
-    // Settings page parameters
-    kParamDisplayMode,      // 0=note name, 1=note number
-    
-    kNumParameters
+enum SpecIndex {
+    SPEC_NUM_TRACKS = 0,
+    NUM_SPECS
 };
 
-static const _NT_parameter parameters[] = {
-    // Main page: MIDI channel filter
-    { .name = "MIDI Channel", .min = 0, .max = 16, .def = 0, .unit = kNT_unitEnum, .scaling = 0, .enumStrings = channelNames },
-    
-    // Settings page: Display mode
-    { .name = "Display Mode", .min = 0, .max = 1, .def = 0, .unit = kNT_unitEnum, .scaling = 0, .enumStrings = displayModeNames },
-};
-
-// ============================================================================
-// PARAMETER PAGES WITH GROUPS
-// ============================================================================
-
-// Page 1: Main controls (group 1)
-static const uint8_t pageMain[] = { kParamMidiChannel };
-
-// Page 2: Settings (group 2)
-static const uint8_t pageSettings[] = { kParamDisplayMode };
-
-// Page definitions with groups
-// The .group field creates visual groupings in the UI
-static const _NT_parameterPage pages[] = {
-    { .name = "Main", .numParams = ARRAY_SIZE(pageMain), .group = 1, .params = pageMain },
-    { .name = "Settings", .numParams = ARRAY_SIZE(pageSettings), .group = 2, .params = pageSettings },
-};
-
-static const _NT_parameterPages parameterPages = {
-    .numPages = ARRAY_SIZE(pages),
-    .pages = pages,
-};
-
-// ============================================================================
-// ALGORITHM DATA STRUCTURES
-// ============================================================================
-
-// DTC (Data Tightly Coupled) - Fast access data for step()
-struct _midilooper_DTC {
-    // Last received MIDI note info
-    uint8_t lastNote;       // 0-127
-    uint8_t lastVelocity;   // 0-127
-    uint8_t lastChannel;    // 0-15 (displayed as 1-16)
-    bool gateOn;            // True if note is currently on
-    
-    // Activity indicator
-    uint8_t activityCounter; // Decrements each step for visual feedback
-};
-
-// Main algorithm structure
-struct _midilooperAlgorithm : public _NT_algorithm {
-    _midilooperAlgorithm(_midilooper_DTC* dtc_) : dtc(dtc_) {}
-    ~_midilooperAlgorithm() {}
-    
-    _midilooper_DTC* dtc;
+static const _NT_specification specifications[] = {
+    { .name = "Tracks", .min = MIN_TRACKS, .max = MAX_TRACKS, .def = MAX_TRACKS, .type = kNT_typeGeneric }
 };
 
 // ============================================================================
 // FACTORY FUNCTIONS
 // ============================================================================
 
-// Calculate memory requirements for the plugin
-void calculateRequirements(_NT_algorithmRequirements& req, const int32_t* specifications) {
-    req.numParameters = ARRAY_SIZE(parameters);
-    req.sram = sizeof(_midilooperAlgorithm);
-    req.dram = 0;  // No large buffers needed
-    req.dtc = sizeof(_midilooper_DTC);
+void calculateRequirements(_NT_algorithmRequirements& req, const int32_t* specs) {
+    int numTracks = specs ? specs[SPEC_NUM_TRACKS] : MAX_TRACKS;
+    req.numParameters = calcTotalParams(numTracks);
+    req.sram = sizeof(MidiLooperAlgorithm);
+    req.dram = sizeof(TrackState) * numTracks;  // Full per-track state
+    req.dtc = sizeof(MidiLooper_DTC);
     req.itc = 0;
 }
 
-// Construct the algorithm instance
 _NT_algorithm* construct(const _NT_algorithmMemoryPtrs& ptrs,
                          const _NT_algorithmRequirements& req,
-                         const int32_t* specifications) {
-    _midilooper_DTC* dtc = (_midilooper_DTC*)ptrs.dtc;
-    
-    // Initialize DTC
-    memset(dtc, 0, sizeof(_midilooper_DTC));
-    dtc->lastNote = 60;      // Middle C
-    dtc->lastVelocity = 0;
-    dtc->lastChannel = 0;
-    dtc->gateOn = false;
-    dtc->activityCounter = 0;
-    
-    // Construct algorithm in provided SRAM
-    _midilooperAlgorithm* pThis = new (ptrs.sram) _midilooperAlgorithm(dtc);
+                         const int32_t* specs) {
+    MidiLooper_DTC* dtc = (MidiLooper_DTC*)ptrs.dtc;
+    TrackState* trackStates = (TrackState*)ptrs.dram;
+    int numTracks = specs ? specs[SPEC_NUM_TRACKS] : MAX_TRACKS;
 
-    // Set up parameters and parameter pages
+    // Initialize DTC (global state only)
+    memset(dtc, 0, sizeof(MidiLooper_DTC));
+    dtc->transportState = TRANSPORT_STOPPED;
+    dtc->prevGateHigh = false;
+    dtc->prevClockHigh = false;
+    dtc->stepTime = 0.0f;
+    dtc->stepDuration = 0.1f;
+    dtc->lastRecord = 0;
+    dtc->lastTrack = 0;
+    dtc->lastClearTrack = 0;
+    dtc->lastClearAll = 0;
+
+    // Initialize per-track state in DRAM
+    for (int t = 0; t < numTracks; t++) {
+        TrackState* ts = &trackStates[t];
+
+        // Clear all track data
+        for (int s = 0; s < MAX_STEPS; s++) {
+            ts->data.steps[s].count = 0;
+            ts->shuffleOrder[s] = (uint8_t)(s + 1);
+        }
+
+        // Clear playing notes
+        for (int n = 0; n < 128; n++) {
+            ts->playing[n].active = false;
+            ts->activeNotes[n] = 0;
+        }
+
+        // Initialize playback state
+        ts->clockCount = 0;
+        ts->step = 0;
+        ts->lastStep = 1;
+        ts->brownianPos = 1;
+        ts->shufflePos = 1;
+        ts->readCyclePos = 0;
+        ts->activeVel = 0;
+        ts->lastEnabled = (t == 0) ? 1 : 0;
+
+        // Initialize cache as dirty
+        ts->cache.invalidate();
+    }
+
+    // Construct algorithm in SRAM
+    MidiLooperAlgorithm* pThis = new (ptrs.sram) MidiLooperAlgorithm(dtc, trackStates, numTracks);
+
+    // Seed PRNG with hardware entropy for unique randomness per instance
+    pThis->randState = NT_getCpuCycleCount();
+
+    // Initialize held notes
+    for (int i = 0; i < 128; i++) {
+        pThis->heldNotes[i].active = false;
+    }
+
+    // Initialize delayed notes
+    for (int i = 0; i < MAX_DELAYED_NOTES; i++) {
+        pThis->delayedNotes[i].active = false;
+    }
+
+    // Build dynamic parameter pages based on track count
+    // Page 0: Global
+    pThis->pageDefs[0] = { .name = "Global", .numParams = ARRAY_SIZE(pageGlobal), .group = 1, .unused = {0, 0}, .params = pageGlobal };
+    // Page 1: MIDI
+    pThis->pageDefs[1] = { .name = "MIDI", .numParams = ARRAY_SIZE(pageMidiConfig), .group = 2, .unused = {0, 0}, .params = pageMidiConfig };
+    // Track pages (2 to 2+numTracks-1)
+    for (int t = 0; t < numTracks; t++) {
+        buildTrackPageIndices(pThis->pageTrackIndices[t], t);
+        pThis->pageDefs[2 + t] = {
+            .name = trackPageNames[t],
+            .numParams = PARAMS_PER_TRACK,
+            .group = 3,
+            .unused = {0, 0},
+            .params = pThis->pageTrackIndices[t]
+        };
+    }
+
+    pThis->dynamicPages.numPages = 2 + numTracks;
+    pThis->dynamicPages.pages = pThis->pageDefs;
+
+    // Set up parameters and pages
     pThis->parameters = parameters;
-    pThis->parameterPages = &parameterPages;
+    pThis->parameterPages = &pThis->dynamicPages;
+
+    (void)req;  // Silence unused parameter warning
 
     return pThis;
 }
 
-// Handle parameter changes
 void parameterChanged(_NT_algorithm* self, int p) {
-    // Parameters are read directly from self->v[] in step() and draw()
-    // No caching needed for this simple plugin
+    MidiLooperAlgorithm* alg = (MidiLooperAlgorithm*)self;
+
+    // Check if this is a track parameter that affects cached values
+    if (p >= kGlobalParamCount) {
+        int track = (p - kGlobalParamCount) / PARAMS_PER_TRACK;
+        int trackParam = (p - kGlobalParamCount) % PARAMS_PER_TRACK;
+
+        // Invalidate cache when length or division changes
+        // These are the only parameters that affect effectiveQuantize
+        if (trackParam == kTrackLength || trackParam == kTrackDivision) {
+            if (track >= 0 && track < alg->numTracks) {
+                alg->trackStates[track].cache.invalidate();
+            }
+        }
+    }
 }
 
-// Audio/CV processing step (called every block)
+// ============================================================================
+// STEP FUNCTION (Audio rate processing)
+// ============================================================================
+
 void step(_NT_algorithm* self, float* busFrames, int numFramesBy4) {
-    _midilooperAlgorithm* pThis = (_midilooperAlgorithm*)self;
-    _midilooper_DTC* dtc = pThis->dtc;
-    
-    // Decrement activity counter for visual feedback decay
-    if (dtc->activityCounter > 0) {
-        dtc->activityCounter--;
+    MidiLooperAlgorithm* alg = (MidiLooperAlgorithm*)self;
+    MidiLooper_DTC* dtc = alg->dtc;
+    const int16_t* v = alg->v;
+
+    int numFrames = numFramesBy4 * 4;
+    float dt = (float)numFrames / (float)NT_globals.sampleRate;
+
+    // Read CV inputs
+    float gateVal = busFrames[numFrames - 1];
+    float clockVal = busFrames[numFrames + numFrames - 1];
+
+    bool gateHigh = gateVal > GATE_THRESHOLD_HIGH;
+    bool gateLow = gateVal < GATE_THRESHOLD_LOW;
+    bool clockHigh = clockVal > GATE_THRESHOLD_HIGH;
+    bool clockLow = clockVal < GATE_THRESHOLD_LOW;
+
+    uint32_t where = destToWhere(v[kParamMidiOutDest]);
+
+    // Gate edge detection (transport control)
+    if (gateHigh && !dtc->prevGateHigh) {
+        handleTransportStart(alg);
+    } else if (gateLow && dtc->prevGateHigh) {
+        handleTransportStop(alg, where);
     }
-    
-    // This plugin doesn't process audio - it just monitors MIDI
-    // If you wanted to output CV based on MIDI, you would do it here
+    dtc->prevGateHigh = gateHigh && !gateLow;
+
+    // Clock edge detection
+    bool clockRising = clockHigh && !dtc->prevClockHigh;
+    dtc->prevClockHigh = clockHigh && !clockLow;
+
+    // Parameter change detection: Clear Track
+    int clearTrack = v[kParamClearTrack];
+    if (clearTrack != dtc->lastClearTrack) {
+        if (clearTrack == 1) {
+            int track = v[kParamRecTrack];
+            TrackParams tp = TrackParams::fromAlgorithm(v, track);
+            sendTrackNotesOff(alg, track, where, tp.channel());
+            clearTrackEvents(&alg->trackStates[track].data);
+        }
+        dtc->lastClearTrack = clearTrack;
+    }
+
+    // Parameter change detection: Clear All
+    int clearAll = v[kParamClearAll];
+    if (clearAll != dtc->lastClearAll) {
+        if (clearAll == 1) {
+            for (int t = 0; t < alg->numTracks; t++) {
+                TrackParams tp = TrackParams::fromAlgorithm(v, t);
+                sendTrackNotesOff(alg, t, where, tp.channel());
+                clearTrackEvents(&alg->trackStates[t].data);
+            }
+        }
+        dtc->lastClearAll = clearAll;
+    }
+
+    // Timing and delayed notes
+    dtc->stepTime += dt;
+    processDelayedNotes(alg, dt);
+
+    // Clock trigger processing
+    if (clockRising && transportIsRunning(dtc->transportState)) {
+        // Update step duration estimate
+        if (dtc->stepTime > 0.001f) {
+            dtc->stepDuration = dtc->stepTime;
+        }
+        dtc->stepTime = 0.0f;
+
+        int recTrack = v[kParamRecTrack];
+        bool panicOnWrap = (v[kParamPanicOnWrap] == 1);
+
+        // Handle recording track change
+        if (recTrack != dtc->lastTrack) {
+            clearHeldNotes(alg);
+            dtc->lastTrack = recTrack;
+        }
+
+        // Handle record state change
+        int record = v[kParamRecord];
+        if (record != dtc->lastRecord) {
+            if (record == 1) {
+                dtc->transportState = transportTransition_RecordBegin(dtc->transportState);
+                if (v[kParamRecMode] == 0) {
+                    clearTrackEvents(&alg->trackStates[recTrack].data);
+                }
+            } else {
+                finalizeHeldNotes(alg);
+                dtc->transportState = transportTransition_RecordEnd(dtc->transportState);
+            }
+            dtc->lastRecord = record;
+        }
+
+        // Process each track
+        for (int t = 0; t < alg->numTracks; t++) {
+            processTrack(alg, t, where, panicOnWrap);
+        }
+    }
 }
 
 // ============================================================================
 // MIDI HANDLING
 // ============================================================================
 
-// Called for each incoming MIDI message
-// byte0 = status byte (message type + channel)
-// byte1 = first data byte (note number for note on/off)
-// byte2 = second data byte (velocity for note on/off)
 void midiMessage(_NT_algorithm* self, uint8_t byte0, uint8_t byte1, uint8_t byte2) {
-    _midilooperAlgorithm* pThis = (_midilooperAlgorithm*)self;
-    _midilooper_DTC* dtc = pThis->dtc;
-    
-    // Extract status (upper nibble) and channel (lower nibble)
+    MidiLooperAlgorithm* alg = (MidiLooperAlgorithm*)self;
+    MidiLooper_DTC* dtc = alg->dtc;
+    const int16_t* v = alg->v;
+
     uint8_t status = byte0 & 0xF0;
     uint8_t channel = byte0 & 0x0F;
-    
-    // Get channel filter setting (0 = all channels)
-    int channelFilter = pThis->v[kParamMidiChannel];
-    
-    // Check if we should process this channel
-    // channelFilter 0 = all, 1-16 = specific channel (stored as 0-15 internally)
-    if (channelFilter != 0 && channel != (channelFilter - 1)) {
-        return;  // Skip messages not matching our filter
+
+    // Channel filter
+    int channelFilter = v[kParamMidiInCh];
+    if (channelFilter > 0 && channel != (channelFilter - 1)) {
+        return;
     }
-    
-    // Handle note on/off messages
-    if (status == kMidiNoteOn) {
-        uint8_t note = byte1;
-        uint8_t velocity = byte2;
-        
-        if (velocity > 0) {
-            // Note on
-            dtc->lastNote = note;
-            dtc->lastVelocity = velocity;
-            dtc->lastChannel = channel;
-            dtc->gateOn = true;
-            dtc->activityCounter = 30;  // Flash activity indicator
-        } else {
-            // Note on with velocity 0 = note off
-            if (note == dtc->lastNote) {
-                dtc->gateOn = false;
+
+    int track = v[kParamRecTrack];
+    TrackParams tp = TrackParams::fromAlgorithm(v, track);
+    int outCh = tp.channel();
+    uint32_t where = destToWhere(v[kParamMidiOutDest]);
+
+    bool isNoteOn = (status == kMidiNoteOn && byte2 > 0);
+    bool isNoteOff = (status == kMidiNoteOff || (status == kMidiNoteOn && byte2 == 0));
+
+    // Pass-through (if input channel differs from output)
+    if (isNoteOn || isNoteOff) {
+        int inCh = channel + 1;
+        if (inCh != outCh) {
+            NT_sendMidi3ByteMessage(where, withChannel(status, outCh), byte1, byte2);
+        }
+    }
+
+    // Update input display state
+    if (isNoteOn) {
+        dtc->inputNotes[byte1] = 1;
+        dtc->inputVel = byte2;
+    } else if (isNoteOff) {
+        dtc->inputNotes[byte1] = 0;
+        // Check if any notes still held
+        bool anyHeld = false;
+        for (int n = 0; n < 128; n++) {
+            if (dtc->inputNotes[n]) {
+                anyHeld = true;
+                break;
             }
         }
-    }
-    else if (status == kMidiNoteOff) {
-        uint8_t note = byte1;
-        
-        // Only turn off gate if it's the same note
-        if (note == dtc->lastNote) {
-            dtc->gateOn = false;
+        if (!anyHeld) {
+            dtc->inputVel = 0;
         }
+    }
+
+    // Recording - only process if in recording state
+    if (!transportIsRecording(dtc->transportState)) return;
+
+    // Create recording context with current state (uses cached quantize)
+    TrackState* ts = &alg->trackStates[track];
+    RecordingContext ctx = createRecordingContext(
+        v, track, ts->step, dtc->stepTime, dtc->stepDuration,
+        &ts->cache
+    );
+
+    if (isNoteOn) {
+        recordNoteOn(alg, ctx, byte1, byte2);
+    }
+    else if (isNoteOff) {
+        recordNoteOff(alg, ctx, byte1);
     }
 }
 
 // ============================================================================
-// CUSTOM UI
+// UI AND SERIALIZATION WRAPPERS
 // ============================================================================
 
-// Draw custom UI - called when screen needs updating
-// Returns true to hide standard parameter display
 bool draw(_NT_algorithm* self) {
-    _midilooperAlgorithm* pThis = (_midilooperAlgorithm*)self;
-    _midilooper_DTC* dtc = pThis->dtc;
-    
-    // Title
-    NT_drawText(10, 8, "MIDI LOOPER", 15, kNT_textLeft, kNT_textNormal);
-    
-    // Get display mode setting
-    int displayMode = pThis->v[kParamDisplayMode];
-    
-    // Build note display string
-    char noteStr[16];
-    if (displayMode == 0) {
-        // Note name mode: "C4", "F#5", etc.
-        int noteName = dtc->lastNote % 12;
-        int octave = (dtc->lastNote / 12) - 1;  // MIDI octave convention
-        // Build string manually: copy note name, then append octave
-        const char* name = noteNames[noteName];
-        int i = 0;
-        while (*name) noteStr[i++] = *name++;
-        // Convert octave to string (handles -1 to 9)
-        if (octave < 0) {
-            noteStr[i++] = '-';
-            octave = -octave;
-        }
-        noteStr[i++] = '0' + octave;
-        noteStr[i] = '\0';
-    } else {
-        // Note number mode: "60", "127", etc.
-        NT_intToString(noteStr, dtc->lastNote);
-    }
-    
-    // Draw note (large, centered)
-    NT_drawText(128, 24, noteStr, 15, kNT_textCentre, kNT_textLarge);
-    
-    // Draw velocity bar
-    NT_drawText(10, 44, "Vel:", 10, kNT_textLeft, kNT_textTiny);
-    int velBarWidth = (dtc->lastVelocity * 180) / 127;
-    NT_drawShapeI(kNT_box, 40, 42, 220, 50, 8);  // Outline
-    if (velBarWidth > 0) {
-        NT_drawShapeI(kNT_rectangle, 41, 43, 41 + velBarWidth, 49, 
-                      dtc->gateOn ? 15 : 10);  // Filled bar (brighter when gate on)
-    }
-    
-    // Draw velocity number
-    char velStr[8];
-    NT_intToString(velStr, dtc->lastVelocity);
-    NT_drawText(225, 44, velStr, 12, kNT_textLeft, kNT_textTiny);
-    
-    // Draw channel
-    char chanStr[16];
-    chanStr[0] = 'C'; chanStr[1] = 'h'; chanStr[2] = ':'; chanStr[3] = ' ';
-    NT_intToString(chanStr + 4, dtc->lastChannel + 1);
-    NT_drawText(10, 56, chanStr, 12, kNT_textLeft, kNT_textTiny);
-    
-    // Gate indicator
-    if (dtc->gateOn) {
-        NT_drawShapeI(kNT_rectangle, 240, 56, 250, 66, 15);  // Filled square when on
-        NT_drawText(200, 58, "GATE", 15, kNT_textLeft, kNT_textTiny);
-    } else {
-        NT_drawShapeI(kNT_box, 240, 56, 250, 66, 8);  // Empty box when off
-        NT_drawText(200, 58, "gate", 8, kNT_textLeft, kNT_textTiny);
-    }
-    
-    // Activity flash
-    if (dtc->activityCounter > 0) {
-        int brightness = (dtc->activityCounter > 15) ? 15 : dtc->activityCounter;
-        NT_drawShapeI(kNT_rectangle, 5, 5, 8, 15, brightness);
-    }
-    
-    return true;  // Hide standard parameter line
+    return drawUI((MidiLooperAlgorithm*)self);
+}
+
+void serialise(_NT_algorithm* self, _NT_jsonStream& stream) {
+    serialiseData((MidiLooperAlgorithm*)self, stream);
+}
+
+bool deserialise(_NT_algorithm* self, _NT_jsonParse& parse) {
+    return deserialiseData((MidiLooperAlgorithm*)self, parse);
 }
 
 // ============================================================================
@@ -295,11 +367,11 @@ bool draw(_NT_algorithm* self) {
 // ============================================================================
 
 static const _NT_factory factory = {
-    .guid = NT_MULTICHAR('M', 'i', 'L', 'p'),  // Unique 4-char identifier
+    .guid = NT_MULTICHAR('M', 'i', 'L', '3'),  // MIDI Looper v3
     .name = "MIDI Looper",
-    .description = "MIDI looper for recording and playback",
-    .numSpecifications = 0,
-    .specifications = NULL,
+    .description = "1-4 track MIDI step recorder/sequencer",
+    .numSpecifications = NUM_SPECS,
+    .specifications = specifications,
     .calculateStaticRequirements = NULL,
     .initialise = NULL,
     .calculateRequirements = calculateRequirements,
@@ -308,24 +380,28 @@ static const _NT_factory factory = {
     .step = step,
     .draw = draw,
     .midiRealtime = NULL,
-    .midiMessage = midiMessage,  // Register MIDI callback
+    .midiMessage = midiMessage,
     .tags = kNT_tagUtility,
     .hasCustomUi = NULL,
     .customUi = NULL,
     .setupUi = NULL,
+    .serialise = serialise,
+    .deserialise = deserialise,
+    .midiSysEx = NULL,
+    .parameterUiPrefix = NULL,
+    .parameterString = NULL,
 };
 
 // ============================================================================
 // PLUGIN ENTRY POINT
 // ============================================================================
 
-// Main entry point called by distingNT to discover plugin factories
 uintptr_t pluginEntry(_NT_selector selector, uint32_t data) {
     switch (selector) {
         case kNT_selector_version:
-            return kNT_apiVersion9;
+            return kNT_apiVersion12;
         case kNT_selector_numFactories:
-            return 1;  // This plugin provides 1 algorithm
+            return 1;
         case kNT_selector_factoryInfo:
             return (uintptr_t)((data == 0) ? &factory : NULL);
     }

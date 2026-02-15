@@ -10,6 +10,7 @@ plugins/
 .idea/
 *.xcodeproj/
 *.xcworkspace/
+compile_commands.json
 
 # Object files
 *.o

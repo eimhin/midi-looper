@@ -35,7 +35,7 @@ ifeq ($(TARGET),hardware)
              -fno-rtti \
              -fno-exceptions \
              -DDISTING_HARDWARE
-    INCLUDES = -I. -I./distingNT_API/include
+    INCLUDES = -I. -I./include -I./distingNT_API/include
     LDFLAGS = -Wl,--relocatable -nostdlib
     OUTPUT_DIR = plugins
     BUILD_DIR = build
@@ -72,7 +72,7 @@ else ifeq ($(TARGET),test)
         EXT = dll
     endif
 
-    INCLUDES = -I. -I./distingNT_API/include
+    INCLUDES = -I. -I./include -I./distingNT_API/include
     OUTPUT_DIR = plugins
     OUTPUT = $(OUTPUT_DIR)/$(PLUGIN_NAME).$(EXT)
     CHECK_CMD = nm $(OUTPUT) | grep ' U ' || echo "No undefined symbols"
