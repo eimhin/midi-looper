@@ -6,6 +6,7 @@ plugins/
 .DS_Store
 
 # IDE
+.cache/
 .vscode/
 .idea/
 *.xcodeproj/

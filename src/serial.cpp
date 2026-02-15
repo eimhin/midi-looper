@@ -1,14 +1,6 @@
-/*
- * MIDI Looper - Serialization
- * Save and load track data and state
- */
-
-#pragma once
-
-#include "midilooper/config.h"
-#include "midilooper/types.h"
-#include "midilooper/midi.h"
-#include <distingnt/serialisation.h>
+#ifdef DISTING_HARDWARE
+#include "serial.h"
+#include "midi.h"
 
 // ============================================================================
 // SERIALIZATION
@@ -19,7 +11,7 @@
 // 2 - Added explicit version field
 static const int SERIAL_VERSION = 2;
 
-static void serialiseData(MidiLooperAlgorithm* alg, _NT_jsonStream& stream) {
+void serialiseData(MidiLooperAlgorithm* alg, _NT_jsonStream& stream) {
     int numTracks = alg->numTracks;
 
     // Version for future migration support
@@ -89,7 +81,7 @@ static void serialiseData(MidiLooperAlgorithm* alg, _NT_jsonStream& stream) {
     stream.closeArray();
 }
 
-static bool deserialiseData(MidiLooperAlgorithm* alg, _NT_jsonParse& parse) {
+bool deserialiseData(MidiLooperAlgorithm* alg, _NT_jsonParse& parse) {
     int maxTracks = alg->numTracks;  // Only load tracks we have allocated
     int version = 1;  // Default for legacy data without version field
 
@@ -145,7 +137,11 @@ static bool deserialiseData(MidiLooperAlgorithm* alg, _NT_jsonParse& parse) {
                             }
                         }
                     } else {
+#ifdef DISTING_HARDWARE
                         if (!parse.skipMember()) return false;
+#else
+                        return false;
+#endif
                     }
                 }
             }
@@ -154,7 +150,11 @@ static bool deserialiseData(MidiLooperAlgorithm* alg, _NT_jsonParse& parse) {
                 int numTrackMembers;
                 if (!parse.numberOfObjectMembers(numTrackMembers)) return false;
                 for (int tm = 0; tm < numTrackMembers; tm++) {
+#ifdef DISTING_HARDWARE
                     if (!parse.skipMember()) return false;
+#else
+                    return false;
+#endif
                 }
             }
         }
@@ -223,9 +223,14 @@ static bool deserialiseData(MidiLooperAlgorithm* alg, _NT_jsonParse& parse) {
             }
         }
         else {
+#ifdef DISTING_HARDWARE
             if (!parse.skipMember()) return false;
+#else
+            return false;
+#endif
         }
     }
 
     return true;
 }
+#endif // DISTING_HARDWARE

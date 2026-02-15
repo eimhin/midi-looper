@@ -1,57 +1,11 @@
-/*
- * MIDI Looper - Recording Subsystem
- * Handles note recording logic separate from MIDI pass-through
- */
-
-#pragma once
-
-#include "midilooper/config.h"
-#include "midilooper/types.h"
-#include "midilooper/utils.h"
-#include "midilooper/midi.h"
-
-// Forward declarations
-struct MidiLooperAlgorithm;
-
-// ============================================================================
-// RECORDING CONTEXT
-// ============================================================================
-
-// Encapsulates all parameters needed for recording operations
-struct RecordingContext {
-    int track;
-    int loopLen;
-    int quantize;
-    float snapThreshold;
-    int rawStep;
-    float stepFraction;
-};
-
-// Create recording context from algorithm state
-// Uses cached quantize values for efficiency in MIDI handling path
-static inline RecordingContext createRecordingContext(
-    const int16_t* v,
-    int track,
-    int currentStep,
-    float stepTime,
-    float stepDuration,
-    TrackCache* cache
-) {
-    RecordingContext ctx;
-    ctx.track = track;
-    ctx.quantize = getCachedQuantize(v, track, cache, ctx.loopLen);
-    ctx.rawStep = clamp(currentStep, 1, ctx.loopLen);
-    ctx.stepFraction = (stepDuration > 0.0f) ? clampf(stepTime / stepDuration, 0.0f, 1.0f) : 0.0f;
-    ctx.snapThreshold = (float)v[kParamRecSnap] / 100.0f;
-    return ctx;
-}
+#include "recording.h"
+#include "midi.h"
 
 // ============================================================================
 // RECORDING OPERATIONS
 // ============================================================================
 
-// Record a note-on event (starts tracking a held note)
-static void recordNoteOn(
+void recordNoteOn(
     MidiLooperAlgorithm* alg,
     const RecordingContext& ctx,
     uint8_t note,
@@ -73,8 +27,7 @@ static void recordNoteOn(
     held->rawStep = (uint8_t)ctx.rawStep;
 }
 
-// Record a note-off event (completes a held note and stores it)
-static void recordNoteOff(
+void recordNoteOff(
     MidiLooperAlgorithm* alg,
     const RecordingContext& ctx,
     uint8_t note
@@ -106,9 +59,7 @@ static void recordNoteOff(
     held->active = false;
 }
 
-// Finalize all held notes when recording stops
-// Called when transitioning out of recording state
-static void finalizeHeldNotes(MidiLooperAlgorithm* alg) {
+void finalizeHeldNotes(MidiLooperAlgorithm* alg) {
     for (int noteNum = 0; noteNum < 128; noteNum++) {
         HeldNote* held = &alg->heldNotes[noteNum];
         if (!held->active) continue;
@@ -135,9 +86,7 @@ static void finalizeHeldNotes(MidiLooperAlgorithm* alg) {
     }
 }
 
-// Clear all held notes without recording them
-// Called when recording track changes
-static void clearHeldNotes(MidiLooperAlgorithm* alg) {
+void clearHeldNotes(MidiLooperAlgorithm* alg) {
     for (int i = 0; i < 128; i++) {
         alg->heldNotes[i].active = false;
     }

@@ -11,7 +11,15 @@
 # ============================================================================
 
 PLUGIN_NAME = midilooper
-SOURCES = midilooper.cpp
+SOURCES = midilooper.cpp \
+          src/quantize.cpp \
+          src/midi.cpp \
+          src/directions.cpp \
+          src/modifiers.cpp \
+          src/recording.cpp \
+          src/playback.cpp \
+          src/ui.cpp \
+          src/serial.cpp
 
 # Detect platform
 UNAME_S := $(shell uname -s)
@@ -35,7 +43,7 @@ ifeq ($(TARGET),hardware)
              -fno-rtti \
              -fno-exceptions \
              -DDISTING_HARDWARE
-    INCLUDES = -I. -I./include -I./distingNT_API/include
+    INCLUDES = -I. -I./src -I./distingNT_API/include
     LDFLAGS = -Wl,--relocatable -nostdlib
     OUTPUT_DIR = plugins
     BUILD_DIR = build
@@ -72,7 +80,7 @@ else ifeq ($(TARGET),test)
         EXT = dll
     endif
 
-    INCLUDES = -I. -I./include -I./distingNT_API/include
+    INCLUDES = -I. -I./src -I./distingNT_API/include
     OUTPUT_DIR = plugins
     OUTPUT = $(OUTPUT_DIR)/$(PLUGIN_NAME).$(EXT)
     CHECK_CMD = nm $(OUTPUT) | grep ' U ' || echo "No undefined symbols"
@@ -92,11 +100,9 @@ $(OUTPUT): $(OBJECTS)
 	$(CXX) $(CFLAGS) $(LDFLAGS) -o $@ $^
 	@echo "Built hardware plugin: $@"
 
-$(BUILD_DIR)/%.o: %.cpp | $(BUILD_DIR)
+$(BUILD_DIR)/%.o: %.cpp
+	@mkdir -p $(@D)
 	$(CXX) $(CFLAGS) $(INCLUDES) -c -o $@ $<
-
-$(BUILD_DIR):
-	@mkdir -p $(BUILD_DIR)
 
 # Test build (direct linking)
 else ifeq ($(TARGET),test)

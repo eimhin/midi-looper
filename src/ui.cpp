@@ -1,13 +1,5 @@
-/*
- * MIDI Looper - Custom UI
- * Drawing functions for the distingNT display
- */
-
-#pragma once
-
-#include "midilooper/config.h"
-#include "midilooper/types.h"
-#include "midilooper/utils.h"
+#include "ui.h"
+#include "quantize.h"
 
 // ============================================================================
 // UI HELPER FUNCTIONS
@@ -26,7 +18,7 @@ static void drawVelBar(int x, int vel) {
 // MAIN DRAW FUNCTION
 // ============================================================================
 
-static bool drawUI(MidiLooperAlgorithm* alg) {
+bool drawUI(MidiLooperAlgorithm* alg) {
     MidiLooper_DTC* dtc = alg->dtc;
     const int16_t* v = alg->v;
 
@@ -34,7 +26,7 @@ static bool drawUI(MidiLooperAlgorithm* alg) {
 
     // Transport indicator (play triangle or stop square)
     if (transportIsRunning(dtc->transportState)) {
-        // Draw filled right-pointing play triangle (▶)
+        // Draw filled right-pointing play triangle
         for (int i = 0; i <= 8; i++) {
             int halfW = (i <= 4) ? i : (8 - i);  // 0,1,2,3,4,3,2,1,0
             int rightX = UI_LEFT_MARGIN + halfW * 2;

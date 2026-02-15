@@ -1,25 +1,18 @@
-/*
- * MIDI Looper - Playback Subsystem
- * Transport control, note scheduling, and step processing
- */
-
-#pragma once
-
-#include "midilooper/config.h"
-#include "midilooper/types.h"
-#include "midilooper/math.h"
-#include "midilooper/random.h"
-#include "midilooper/midi.h"
-#include "midilooper/directions.h"
-#include "midilooper/modifiers.h"
-#include "midilooper/recording.h"
+#include "playback.h"
+#include "math.h"
+#include "midi.h"
+#include "midi_utils.h"
+#include "directions.h"
+#include "modifiers.h"
+#include "recording.h"
+#include "random.h"
 
 // ============================================================================
 // TRANSPORT CONTROL
 // ============================================================================
 
 // Reset all tracks and start transport
-static void handleTransportStart(MidiLooperAlgorithm* alg) {
+void handleTransportStart(MidiLooperAlgorithm* alg) {
     MidiLooper_DTC* dtc = alg->dtc;
 
     for (int t = 0; t < alg->numTracks; t++) {
@@ -40,7 +33,7 @@ static void handleTransportStart(MidiLooperAlgorithm* alg) {
 }
 
 // Stop transport and clear all note state
-static void handleTransportStop(MidiLooperAlgorithm* alg, uint32_t where) {
+void handleTransportStop(MidiLooperAlgorithm* alg, uint32_t where) {
     MidiLooper_DTC* dtc = alg->dtc;
 
     // Finalize any held notes before stopping
@@ -79,7 +72,7 @@ static void handleTransportStop(MidiLooperAlgorithm* alg, uint32_t where) {
 // ============================================================================
 
 // Process delayed notes - decrement delays and send notes when ready
-static void processDelayedNotes(MidiLooperAlgorithm* alg, float dt) {
+void processDelayedNotes(MidiLooperAlgorithm* alg, float dt) {
     int delayDecrement = (int)(dt * 1000.0f);
     if (delayDecrement < 1) delayDecrement = 1;
 
@@ -136,7 +129,6 @@ static bool scheduleDelayedNote(MidiLooperAlgorithm* alg, uint8_t note, uint8_t 
 // Process note duration countdowns for a track
 static void processNoteDurations(MidiLooperAlgorithm* alg, int track, uint32_t where, int outCh) {
     TrackState* ts = &alg->trackStates[track];
-    // track is bounded by caller's for loop (0 to numTracks-1)
 
     for (int n = 0; n < 128; n++) {
         PlayingNote* pn = &ts->playing[n];
@@ -225,7 +217,6 @@ static void handlePanicOnWrap(MidiLooperAlgorithm* alg, uint32_t where) {
 static void emitNote(MidiLooperAlgorithm* alg, int track, NoteEvent* ev,
                      int velOffset, int humanize, int outCh, uint32_t where) {
     TrackState* ts = &alg->trackStates[track];
-    // track is bounded by caller, ev->note is 0-127 by MIDI spec
     int velocity = clamp((int)ev->velocity + velOffset, 0, 127);
     int delay = (humanize > 0) ? randRange(alg->randState, 0, humanize) : 0;
 
@@ -246,7 +237,6 @@ static void playTrackEvents(MidiLooperAlgorithm* alg, int track, int finalStep, 
                             int velOffset, int humanize, int outCh, uint32_t where) {
     int stepsToPlay[MAX_STEPS];
     int numSteps = getStepsToEmit(alg, track, finalStep, loopLen, stepsToPlay);
-    // track is bounded by caller's for loop, steps are 1-loopLen from getStepsToEmit
 
     for (int si = 0; si < numSteps; si++) {
         int stepIdx = stepsToPlay[si] - 1;
@@ -295,7 +285,7 @@ static void playTrackEvents(MidiLooperAlgorithm* alg, int track, int finalStep, 
 //
 
 // Process a single track on clock trigger
-static void processTrack(MidiLooperAlgorithm* alg, int track, uint32_t where, bool panicOnWrap) {
+void processTrack(MidiLooperAlgorithm* alg, int track, uint32_t where, bool panicOnWrap) {
     TrackState* ts = &alg->trackStates[track];
     TrackParams tp = TrackParams::fromAlgorithm(alg->v, track);
 

@@ -7,7 +7,7 @@
 
 #include <cstdint>
 #include <distingnt/api.h>
-#include "midilooper/math.h"
+#include "math.h"
 
 // ============================================================================
 // MIDI DESTINATION HELPERS

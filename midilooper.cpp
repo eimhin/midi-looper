@@ -27,12 +27,14 @@
 #include <new>
 
 // Module headers
-#include "midilooper/types.h"
-#include "midilooper/params.h"
-#include "midilooper/midi.h"
-#include "midilooper/ui.h"
-#include "midilooper/serial.h"
-#include "midilooper/playback.h"
+#include "types.h"
+#include "params.h"
+#include "midi_utils.h"
+#include "midi.h"
+#include "recording.h"
+#include "ui.h"
+#include "serial.h"
+#include "playback.h"
 
 // ============================================================================
 // SPECIFICATIONS
@@ -354,6 +356,7 @@ bool draw(_NT_algorithm* self) {
     return drawUI((MidiLooperAlgorithm*)self);
 }
 
+#ifdef DISTING_HARDWARE
 void serialise(_NT_algorithm* self, _NT_jsonStream& stream) {
     serialiseData((MidiLooperAlgorithm*)self, stream);
 }
@@ -361,6 +364,7 @@ void serialise(_NT_algorithm* self, _NT_jsonStream& stream) {
 bool deserialise(_NT_algorithm* self, _NT_jsonParse& parse) {
     return deserialiseData((MidiLooperAlgorithm*)self, parse);
 }
+#endif
 
 // ============================================================================
 // FACTORY DEFINITION
@@ -385,8 +389,13 @@ static const _NT_factory factory = {
     .hasCustomUi = NULL,
     .customUi = NULL,
     .setupUi = NULL,
+#ifdef DISTING_HARDWARE
     .serialise = serialise,
     .deserialise = deserialise,
+#else
+    .serialise = NULL,
+    .deserialise = NULL,
+#endif
     .midiSysEx = NULL,
     .parameterUiPrefix = NULL,
     .parameterString = NULL,

@@ -1,19 +1,11 @@
-/*
- * MIDI Looper - Modifiers and Read Modes
- * Step modification algorithms and multi-step read modes
- */
-
-#pragma once
-
-#include "midilooper/config.h"
-#include "midilooper/types.h"
-#include "midilooper/utils.h"
+#include "modifiers.h"
+#include "random.h"
 
 // ============================================================================
 // CONTINUOUS MODIFIERS
 // ============================================================================
 
-static int applyModifiers(MidiLooperAlgorithm* alg, int track, int baseStep, int loopLen) {
+int applyModifiers(MidiLooperAlgorithm* alg, int track, int baseStep, int loopLen) {
     TrackParams tp = TrackParams::fromAlgorithm(alg->v, track);
 
     int step = baseStep;
@@ -77,7 +69,7 @@ static bool isStepAllowed(int step, int loopLen, int maskPattern, uint32_t& rand
     }
 }
 
-static int applyBinaryModifiers(MidiLooperAlgorithm* alg, int track, int step, int prevStep, int loopLen) {
+int applyBinaryModifiers(MidiLooperAlgorithm* alg, int track, int step, int prevStep, int loopLen) {
     TrackParams tp = TrackParams::fromAlgorithm(alg->v, track);
 
     // No Repeat: skip if same as previous
@@ -104,7 +96,7 @@ static int applyBinaryModifiers(MidiLooperAlgorithm* alg, int track, int step, i
 // READ MODES
 // ============================================================================
 
-static int getStepsToEmit(MidiLooperAlgorithm* alg, int track, int selectedStep, int loopLen, int* outSteps) {
+int getStepsToEmit(MidiLooperAlgorithm* alg, int track, int selectedStep, int loopLen, int* outSteps) {
     TrackParams tp = TrackParams::fromAlgorithm(alg->v, track);
 
     int mode = tp.readMode();

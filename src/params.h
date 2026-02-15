@@ -5,8 +5,8 @@
 
 #pragma once
 
-#include "midilooper/config.h"
-#include "midilooper/types.h"
+#include "config.h"
+#include "types.h"
 #include <cstddef>  // for NULL
 
 // ============================================================================

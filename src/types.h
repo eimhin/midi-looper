@@ -7,7 +7,7 @@
 
 #include <distingnt/api.h>
 #include <cstdint>
-#include "midilooper/config.h"
+#include "config.h"
 
 // ============================================================================
 // MIDI CONSTANTS

@@ -1,22 +1,5 @@
-/*
- * MIDI Looper - Direction Calculations
- * Step position calculations for all 12 playback direction modes
- * Uses Strategy pattern for extensibility
- */
-
-#pragma once
-
-#include "midilooper/config.h"
-#include "midilooper/types.h"
-#include "midilooper/random.h"
-
-// ============================================================================
-// DIRECTION STRATEGY TYPE
-// ============================================================================
-
-// Function pointer type for direction strategies
-// All direction functions share this signature for uniform dispatch
-typedef int (*DirectionStrategy)(int clockCount, int loopLen, int strideSize, uint32_t& randState);
+#include "directions.h"
+#include "random.h"
 
 // ============================================================================
 // DIRECTION STRATEGY IMPLEMENTATIONS
@@ -99,7 +82,6 @@ static int dirDiverge(int clockCount, int loopLen, int, uint32_t&) {
 // Note: DIR_BROWNIAN and DIR_SHUFFLE are handled specially in calculateTrackStep()
 // They maintain state across calls, so they don't fit the stateless strategy pattern
 static int dirBrownianPlaceholder(int clockCount, int loopLen, int, uint32_t&) {
-    // Brownian is handled in calculateTrackStep() - this is a fallback
     return ((clockCount - 1) % loopLen) + 1;
 }
 
@@ -108,7 +90,6 @@ static int dirRandom(int, int loopLen, int, uint32_t& randState) {
 }
 
 static int dirShufflePlaceholder(int clockCount, int loopLen, int, uint32_t&) {
-    // Shuffle is handled in calculateTrackStep() - this is a fallback
     return ((clockCount - 1) % loopLen) + 1;
 }
 
@@ -116,8 +97,6 @@ static int dirShufflePlaceholder(int clockCount, int loopLen, int, uint32_t&) {
 // STRATEGY TABLE
 // ============================================================================
 
-// Direction strategies indexed by DIR_* constants
-// Adding a new direction: 1) Add DIR_* constant, 2) Write strategy function, 3) Add to table
 static const DirectionStrategy directionStrategies[] = {
     dirForward,             // DIR_FORWARD = 0
     dirReverse,             // DIR_REVERSE = 1
@@ -135,18 +114,16 @@ static const DirectionStrategy directionStrategies[] = {
 
 static constexpr int NUM_DIRECTIONS = sizeof(directionStrategies) / sizeof(directionStrategies[0]);
 
-// Validate strategy table is complete (one entry per DIR_* constant)
 static_assert(NUM_DIRECTIONS == 12, "Direction strategy table size mismatch - update table when adding directions");
 
 // ============================================================================
 // MAIN DIRECTION DISPATCH
 // ============================================================================
 
-static int getStepForClock(int clockCount, int loopLen, int dir, int strideSize, uint32_t& randState) {
+int getStepForClock(int clockCount, int loopLen, int dir, int strideSize, uint32_t& randState) {
     if (loopLen == 1) return 1;
     if (clockCount < 1) return 0;
 
-    // Bounds check direction and dispatch through strategy table
     if (dir < 0 || dir >= NUM_DIRECTIONS) {
         return dirForward(clockCount, loopLen, strideSize, randState);
     }
@@ -158,16 +135,14 @@ static int getStepForClock(int clockCount, int loopLen, int dir, int strideSize,
 // STATEFUL DIRECTION HELPERS
 // ============================================================================
 
-// Brownian motion - maintains position state, called from calculateTrackStep()
-static int updateBrownianStep(int currentPos, int loopLen, uint32_t& randState) {
+int updateBrownianStep(int currentPos, int loopLen, uint32_t& randState) {
     int delta = randRange(randState, BROWNIAN_DELTA_MIN, BROWNIAN_DELTA_MAX);
     if (delta == 0) delta = 1;  // Ensure we always move
     int newPos = currentPos + delta;
     return ((newPos - 1 + loopLen * 100) % loopLen) + 1;
 }
 
-// Shuffle - generates randomized order, called from calculateTrackStep()
-static void generateShuffleOrder(uint8_t* order, int loopLen, uint32_t& randState) {
+void generateShuffleOrder(uint8_t* order, int loopLen, uint32_t& randState) {
     for (int i = 0; i < loopLen; i++) {
         order[i] = (uint8_t)(i + 1);
     }
@@ -183,9 +158,6 @@ static void generateShuffleOrder(uint8_t* order, int loopLen, uint32_t& randStat
 // ============================================================================
 // WRAP DETECTION
 // ============================================================================
-
-// Wrap detection strategy type
-typedef bool (*WrapDetector)(int prevPos, int currPos, int loopLen, int clockCount);
 
 static bool wrapForward(int prevPos, int currPos, int loopLen, int) {
     return currPos == 1 && prevPos == loopLen;
@@ -232,7 +204,7 @@ static const WrapDetector wrapDetectors[] = {
     wrapCyclic,     // DIR_SHUFFLE = 11
 };
 
-static bool detectWrap(int prevPos, int currPos, int loopLen, int dir, int clockCount) {
+bool detectWrap(int prevPos, int currPos, int loopLen, int dir, int clockCount) {
     if (prevPos < 1) return false;
     if (loopLen <= 1) return currPos == 1;
 
