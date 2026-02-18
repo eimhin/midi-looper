@@ -26,6 +26,13 @@ static const char* const directionStrings[] = {
 static const char* const stepMaskStrings[] = {
     "All", "Odds", "Evens", "1st Half", "2nd Half", "Sparse", "Dense", "Random", NULL
 };
+static const char* const scaleRootStrings[] = {
+    "C", "C#", "D", "Eb", "E", "F", "F#", "G", "Ab", "A", "Bb", "B", NULL
+};
+static const char* const scaleTypeStrings[] = {
+    "Off", "Ionian", "Dorian", "Phrygian", "Lydian", "Mixolydian",
+    "Aeolian", "Locrian", "Harm Min", "Melo Min", "Maj Penta", "Min Penta", NULL
+};
 
 // ============================================================================
 // PARAMETER DEFINITIONS
@@ -54,7 +61,7 @@ static const char* const stepMaskStrings[] = {
     { .name = "No Repeat", .min = 0, .max = 1, .def = 0, .unit = kNT_unitEnum, .scaling = 0, .enumStrings = noYesStrings }, \
     { .name = "Step Mask", .min = 0, .max = 7, .def = 0, .unit = kNT_unitEnum, .scaling = 0, .enumStrings = stepMaskStrings },
 
-// Parameter definitions (82 total)
+// Parameter definitions (84 total)
 static const _NT_parameter parameters[] = {
     // Routing parameters (0-1)
     NT_PARAMETER_CV_INPUT("Run", 0, 1)     // default bus 1, 0 = none allowed
@@ -67,6 +74,8 @@ static const _NT_parameter parameters[] = {
     { .name = "Rec Snap", .min = 50, .max = 100, .def = 75, .unit = kNT_unitPercent, .scaling = 0, .enumStrings = NULL },
     { .name = "MIDI In Ch", .min = 0, .max = 16, .def = 1, .unit = kNT_unitNone, .scaling = 0, .enumStrings = NULL },
     { .name = "Panic On Wrap", .min = 0, .max = 1, .def = 0, .unit = kNT_unitEnum, .scaling = 0, .enumStrings = noYesStrings },
+    { .name = "Scale Root", .min = 0, .max = 11, .def = 0, .unit = kNT_unitEnum, .scaling = 0, .enumStrings = scaleRootStrings },
+    { .name = "Scale", .min = 0, .max = 11, .def = 0, .unit = kNT_unitEnum, .scaling = 0, .enumStrings = scaleTypeStrings },
     { .name = "Clear Track", .min = 0, .max = 1, .def = 0, .unit = kNT_unitEnum, .scaling = 0, .enumStrings = noYesStrings },
     { .name = "Clear All", .min = 0, .max = 1, .def = 0, .unit = kNT_unitEnum, .scaling = 0, .enumStrings = noYesStrings },
 
@@ -93,7 +102,7 @@ static const uint8_t pageGlobal[] = {
 
 // Page 2: MIDI Config
 static const uint8_t pageMidiConfig[] = {
-    kParamMidiInCh, kParamPanicOnWrap
+    kParamMidiInCh, kParamPanicOnWrap, kParamScaleRoot, kParamScaleType
 };
 
 // ============================================================================

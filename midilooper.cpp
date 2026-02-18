@@ -31,6 +31,7 @@
 #include "params.h"
 #include "playback.h"
 #include "recording.h"
+#include "scales.h"
 #include "serial.h"
 #include "types.h"
 #include "ui.h"
@@ -65,6 +66,9 @@ _NT_algorithm* construct(const _NT_algorithmMemoryPtrs& ptrs, const _NT_algorith
 
     // Initialize DTC (global state only)
     memset(dtc, 0, sizeof(MidiLooper_DTC));
+    for (int i = 0; i < 128; i++) {
+        dtc->noteMap[i] = (uint8_t)i;
+    }
     dtc->transportState = TRANSPORT_STOPPED;
     dtc->recordState = REC_IDLE;
     dtc->prevGateHigh = false;
@@ -374,6 +378,15 @@ void midiMessage(_NT_algorithm* self, uint8_t byte0, uint8_t byte1, uint8_t byte
 
     bool isNoteOn = (status == kMidiNoteOn && byte2 > 0);
     bool isNoteOff = (status == kMidiNoteOff || (status == kMidiNoteOn && byte2 == 0));
+
+    // Scale quantization (applied at input, before pass-through and recording)
+    if (isNoteOn) {
+        uint8_t quantized = quantizeToScale(byte1, v[kParamScaleRoot], v[kParamScaleType]);
+        dtc->noteMap[byte1] = quantized;
+        byte1 = quantized;
+    } else if (isNoteOff) {
+        byte1 = dtc->noteMap[byte1];
+    }
 
     // Pass-through (if input channel differs from output)
     if (isNoteOn || isNoteOff) {

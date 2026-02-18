@@ -168,6 +168,8 @@ enum {
     kParamRecSnap,
     kParamMidiInCh,
     kParamPanicOnWrap,
+    kParamScaleRoot,
+    kParamScaleType,
     kParamClearTrack,
     kParamClearAll,
 
@@ -392,6 +394,10 @@ struct MidiLooper_DTC {
     // Input display
     uint8_t inputVel;
     uint8_t inputNotes[128];  // Bitmask of held input notes
+
+    // Scale quantization note tracking
+    // Maps original MIDI note → quantized note sent, so Note Off releases the correct note
+    uint8_t noteMap[128];
 };
 
 // Main algorithm structure (SRAM)
