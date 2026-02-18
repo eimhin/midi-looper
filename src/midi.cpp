@@ -5,16 +5,12 @@
 // MIDI OUTPUT HELPERS
 // ============================================================================
 
-void sendAllNotesOff(MidiLooperAlgorithm* alg, uint32_t where) {
-    bool sentChannels[16] = {false};
-
+void sendAllNotesOff(MidiLooperAlgorithm* alg) {
     for (int t = 0; t < alg->numTracks; t++) {
         TrackParams tp = TrackParams::fromAlgorithm(alg->v, t);
         int ch = tp.channel();
-        if (!sentChannels[ch - 1]) {
-            NT_sendMidi3ByteMessage(where, withChannel(kMidiCC, ch), 123, 0);
-            sentChannels[ch - 1] = true;
-        }
+        uint32_t where = destToWhere(tp.destination());
+        NT_sendMidi3ByteMessage(where, withChannel(kMidiCC, ch), 123, 0);
     }
 }
 

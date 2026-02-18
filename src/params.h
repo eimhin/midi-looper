@@ -43,6 +43,7 @@ static const char* const stepMaskStrings[] = {
     { .name = "Velocity", .min = -64, .max = 64, .def = 0, .unit = kNT_unitNone, .scaling = 0, .enumStrings = NULL }, \
     { .name = "Humanize", .min = 0, .max = 100, .def = 0, .unit = kNT_unitMs, .scaling = 0, .enumStrings = NULL }, \
     { .name = "Channel", .min = 1, .max = 16, .def = DEF_CHANNEL, .unit = kNT_unitNone, .scaling = 0, .enumStrings = NULL }, \
+    { .name = "Destination", .min = 0, .max = 4, .def = 3, .unit = kNT_unitEnum, .scaling = 0, .enumStrings = midiDestStrings }, \
     { .name = "Stability", .min = 0, .max = 100, .def = 0, .unit = kNT_unitPercent, .scaling = 0, .enumStrings = NULL }, \
     { .name = "Motion", .min = 0, .max = 100, .def = 0, .unit = kNT_unitPercent, .scaling = 0, .enumStrings = NULL }, \
     { .name = "Randomness", .min = 0, .max = 100, .def = 0, .unit = kNT_unitPercent, .scaling = 0, .enumStrings = NULL }, \
@@ -53,7 +54,7 @@ static const char* const stepMaskStrings[] = {
     { .name = "No Repeat", .min = 0, .max = 1, .def = 0, .unit = kNT_unitEnum, .scaling = 0, .enumStrings = noYesStrings }, \
     { .name = "Step Mask", .min = 0, .max = 7, .def = 0, .unit = kNT_unitEnum, .scaling = 0, .enumStrings = stepMaskStrings },
 
-// Parameter definitions (79 total)
+// Parameter definitions (82 total)
 static const _NT_parameter parameters[] = {
     // Routing parameters (0-1)
     NT_PARAMETER_CV_INPUT("Run", 0, 1)     // default bus 1, 0 = none allowed
@@ -64,17 +65,16 @@ static const _NT_parameter parameters[] = {
     { .name = "Rec Track", .min = 0, .max = 3, .def = 0, .unit = kNT_unitEnum, .scaling = 0, .enumStrings = recTrackStrings },
     { .name = "Rec Mode", .min = 0, .max = 2, .def = 0, .unit = kNT_unitEnum, .scaling = 0, .enumStrings = recModeStrings },
     { .name = "Rec Snap", .min = 50, .max = 100, .def = 75, .unit = kNT_unitPercent, .scaling = 0, .enumStrings = NULL },
-    { .name = "MIDI In Ch", .min = 0, .max = 16, .def = 0, .unit = kNT_unitNone, .scaling = 0, .enumStrings = NULL },
-    { .name = "MIDI Out Dest", .min = 0, .max = 4, .def = 2, .unit = kNT_unitEnum, .scaling = 0, .enumStrings = midiDestStrings },
+    { .name = "MIDI In Ch", .min = 0, .max = 16, .def = 1, .unit = kNT_unitNone, .scaling = 0, .enumStrings = NULL },
     { .name = "Panic On Wrap", .min = 0, .max = 1, .def = 0, .unit = kNT_unitEnum, .scaling = 0, .enumStrings = noYesStrings },
     { .name = "Clear Track", .min = 0, .max = 1, .def = 0, .unit = kNT_unitEnum, .scaling = 0, .enumStrings = noYesStrings },
     { .name = "Clear All", .min = 0, .max = 1, .def = 0, .unit = kNT_unitEnum, .scaling = 0, .enumStrings = noYesStrings },
 
     // Track parameters (11-78) - 17 params per track
-    TRACK_PARAMS(1, 1)  // Track 1: enabled by default, channel 1
-    TRACK_PARAMS(0, 2)  // Track 2: disabled by default, channel 2
-    TRACK_PARAMS(0, 3)  // Track 3: disabled by default, channel 3
-    TRACK_PARAMS(0, 4)  // Track 4: disabled by default, channel 4
+    TRACK_PARAMS(1, 2)  // Track 1: enabled by default, channel 2
+    TRACK_PARAMS(0, 3)  // Track 2: disabled by default, channel 3
+    TRACK_PARAMS(0, 4)  // Track 3: disabled by default, channel 4
+    TRACK_PARAMS(0, 5)  // Track 4: disabled by default, channel 5
 };
 
 #undef TRACK_PARAMS
@@ -88,12 +88,12 @@ static const uint8_t pageRouting[] = { kParamRunInput, kParamClockInput };
 
 // Page 1: Global (Recording)
 static const uint8_t pageGlobal[] = {
-    kParamRecord, kParamRecTrack, kParamRecMode, kParamRecSnap
+    kParamRecord, kParamRecTrack, kParamRecMode, kParamRecSnap, kParamClearTrack, kParamClearAll
 };
 
 // Page 2: MIDI Config
 static const uint8_t pageMidiConfig[] = {
-    kParamMidiInCh, kParamMidiOutDest, kParamPanicOnWrap, kParamClearTrack, kParamClearAll
+    kParamMidiInCh, kParamPanicOnWrap
 };
 
 // ============================================================================

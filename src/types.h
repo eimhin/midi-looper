@@ -167,7 +167,6 @@ enum {
     kParamRecMode,
     kParamRecSnap,
     kParamMidiInCh,
-    kParamMidiOutDest,
     kParamPanicOnWrap,
     kParamClearTrack,
     kParamClearAll,
@@ -185,6 +184,7 @@ enum {
     kTrackVelocity,
     kTrackHumanize,
     kTrackChannel,
+    kTrackDestination,
     kTrackStability,
     kTrackMotion,
     kTrackRandomness,
@@ -248,6 +248,7 @@ struct TrackParams {
 
     // Output settings
     int channel() const { return clampParam(raw(kTrackChannel), 1, 16); }
+    int destination() const { return raw(kTrackDestination); }
     int velocity() const { return raw(kTrackVelocity); }  // Offset, can be negative
     int humanize() const { return raw(kTrackHumanize); }
 

@@ -203,13 +203,11 @@ void step(_NT_algorithm* self, float* busFrames, int numFramesBy4) {
     bool clockHigh = clockVal > GATE_THRESHOLD_HIGH;
     bool clockLow = clockVal < GATE_THRESHOLD_LOW;
 
-    uint32_t where = destToWhere(v[kParamMidiOutDest]);
-
     // Gate edge detection (transport control)
     if (gateHigh && !dtc->prevGateHigh) {
         handleTransportStart(alg);
     } else if (gateLow && dtc->prevGateHigh) {
-        handleTransportStop(alg, where);
+        handleTransportStop(alg);
     }
     dtc->prevGateHigh = gateHigh && !gateLow;
 
@@ -223,6 +221,7 @@ void step(_NT_algorithm* self, float* busFrames, int numFramesBy4) {
         if (clearTrack == 1) {
             int track = v[kParamRecTrack];
             TrackParams tp = TrackParams::fromAlgorithm(v, track);
+            uint32_t where = destToWhere(tp.destination());
             sendTrackNotesOff(alg, track, where, tp.channel());
             clearTrackEvents(&alg->trackStates[track].data);
         }
@@ -235,6 +234,7 @@ void step(_NT_algorithm* self, float* busFrames, int numFramesBy4) {
         if (clearAll == 1) {
             for (int t = 0; t < alg->numTracks; t++) {
                 TrackParams tp = TrackParams::fromAlgorithm(v, t);
+                uint32_t where = destToWhere(tp.destination());
                 sendTrackNotesOff(alg, t, where, tp.channel());
                 clearTrackEvents(&alg->trackStates[t].data);
             }
@@ -344,7 +344,7 @@ void step(_NT_algorithm* self, float* busFrames, int numFramesBy4) {
 
         // Process each track
         for (int t = 0; t < alg->numTracks; t++) {
-            processTrack(alg, t, where, panicOnWrap);
+            processTrack(alg, t, panicOnWrap);
         }
     }
 }
@@ -370,7 +370,7 @@ void midiMessage(_NT_algorithm* self, uint8_t byte0, uint8_t byte1, uint8_t byte
     int track = v[kParamRecTrack];
     TrackParams tp = TrackParams::fromAlgorithm(v, track);
     int outCh = tp.channel();
-    uint32_t where = destToWhere(v[kParamMidiOutDest]);
+    uint32_t where = destToWhere(tp.destination());
 
     bool isNoteOn = (status == kMidiNoteOn && byte2 > 0);
     bool isNoteOff = (status == kMidiNoteOff || (status == kMidiNoteOn && byte2 == 0));

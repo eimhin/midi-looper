@@ -48,8 +48,8 @@ static constexpr int MAX_DELAYED_NOTES = 64;    // Humanization delay buffer siz
 // PARAMETER LAYOUT
 // ============================================================================
 
-static constexpr int PARAMS_PER_TRACK = 17;     // Parameters per track
-static constexpr int GLOBAL_PARAMS = 11;        // Global parameters (Run Input, Clock Input, Record, etc.)
+static constexpr int PARAMS_PER_TRACK = 18;     // Parameters per track
+static constexpr int GLOBAL_PARAMS = 10;        // Global parameters (Run Input, Clock Input, Record, etc.)
 
 // Derived constants (do not modify directly)
 static constexpr int MAX_TOTAL_PARAMS = GLOBAL_PARAMS + (PARAMS_PER_TRACK * MAX_TRACKS);

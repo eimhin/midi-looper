@@ -41,7 +41,7 @@ void handleTransportStart(MidiLooperAlgorithm* alg) {
 }
 
 // Stop transport and clear all note state
-void handleTransportStop(MidiLooperAlgorithm* alg, uint32_t where) {
+void handleTransportStop(MidiLooperAlgorithm* alg) {
     MidiLooper_DTC* dtc = alg->dtc;
 
     // Finalize any held notes before stopping
@@ -51,7 +51,7 @@ void handleTransportStop(MidiLooperAlgorithm* alg, uint32_t where) {
     }
 
     dtc->transportState = transportTransition_Stop(dtc->transportState);
-    sendAllNotesOff(alg, where);
+    sendAllNotesOff(alg);
 
     for (int t = 0; t < alg->numTracks; t++) {
         TrackState* ts = &alg->trackStates[t];
@@ -200,8 +200,8 @@ static int calculateTrackStep(MidiLooperAlgorithm* alg, int track, int loopLen, 
 // ============================================================================
 
 // Clear all notes and state (panic)
-static void handlePanicOnWrap(MidiLooperAlgorithm* alg, uint32_t where) {
-    sendAllNotesOff(alg, where);
+static void handlePanicOnWrap(MidiLooperAlgorithm* alg) {
+    sendAllNotesOff(alg);
 
     for (int t = 0; t < alg->numTracks; t++) {
         TrackState* ts = &alg->trackStates[t];
@@ -288,12 +288,13 @@ static void playTrackEvents(MidiLooperAlgorithm* alg, int track, int finalStep,
 //
 
 // Process a single track on clock trigger
-void processTrack(MidiLooperAlgorithm* alg, int track, uint32_t where, bool panicOnWrap) {
+void processTrack(MidiLooperAlgorithm* alg, int track, bool panicOnWrap) {
     TrackState* ts = &alg->trackStates[track];
     TrackParams tp = TrackParams::fromAlgorithm(alg->v, track);
 
     int loopLen = tp.length();
     int outCh = tp.channel();
+    uint32_t where = destToWhere(tp.destination());
 
     // Process note durations first (independent of step calculation)
     processNoteDurations(alg, track, where, outCh);
@@ -324,7 +325,7 @@ void processTrack(MidiLooperAlgorithm* alg, int track, uint32_t where, bool pani
     // Check for loop wrap and trigger panic if configured
     bool wrapped = detectWrap(prevPos, finalStep, loopLen, tp.direction(), ts->clockCount);
     if (wrapped && panicOnWrap) {
-        handlePanicOnWrap(alg, where);
+        handlePanicOnWrap(alg);
     }
 
     // Emit notes for the calculated step(s)

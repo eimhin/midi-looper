@@ -9,10 +9,10 @@
 
 // Transport control
 void handleTransportStart(MidiLooperAlgorithm* alg);
-void handleTransportStop(MidiLooperAlgorithm* alg, uint32_t where);
+void handleTransportStop(MidiLooperAlgorithm* alg);
 
 // Delayed note processing
 void processDelayedNotes(MidiLooperAlgorithm* alg, float dt);
 
 // Track processing
-void processTrack(MidiLooperAlgorithm* alg, int track, uint32_t where, bool panicOnWrap);
+void processTrack(MidiLooperAlgorithm* alg, int track, bool panicOnWrap);

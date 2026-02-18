@@ -8,7 +8,7 @@
 #include "types.h"
 
 // MIDI output helpers
-void sendAllNotesOff(MidiLooperAlgorithm* alg, uint32_t where);
+void sendAllNotesOff(MidiLooperAlgorithm* alg);
 void sendTrackNotesOff(MidiLooperAlgorithm* alg, int track, uint32_t where, int outCh);
 
 // Track event helpers
