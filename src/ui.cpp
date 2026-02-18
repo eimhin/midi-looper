@@ -38,7 +38,7 @@ bool drawUI(MidiLooperAlgorithm* alg) {
     }
 
     // Record indicator (circle)
-    if (transportIsRecording(dtc->transportState) || dtc->stepRecPos > 0) {
+    if (dtc->recordState == REC_LIVE || dtc->recordState == REC_STEP) {
         // Draw filled record circle
         for (int y = UI_REC_CENTER_Y - UI_REC_RADIUS; y <= UI_REC_CENTER_Y + UI_REC_RADIUS; y++) {
             int dy = y - UI_REC_CENTER_Y;

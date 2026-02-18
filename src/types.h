@@ -21,41 +21,57 @@ static constexpr uint8_t kMidiCC = 0xB0;
 // Transport state machine
 enum TransportState {
     TRANSPORT_STOPPED = 0,
-    TRANSPORT_RUNNING = 1,
-    TRANSPORT_RECORDING = 2  // implies running
+    TRANSPORT_RUNNING = 1
+};
+
+// Recording state machine
+enum RecordState {
+    REC_IDLE = 0,         // Not recording
+    REC_LIVE,             // Live recording (transport must be RUNNING)
+    REC_STEP,             // Step recording (transport-independent)
+    REC_LIVE_PENDING      // Record ON + live mode, waiting for transport
 };
 
 // ============================================================================
 // TRANSPORT STATE MACHINE TRANSITIONS
 // ============================================================================
 //
-// Valid state transitions:
+//   STOPPED ──Start──► RUNNING ──Stop──► STOPPED
 //
-//                     ┌─────────────────┐
-//                     │    STOPPED      │
-//                     └────────┬────────┘
-//                              │ Start (gate rising edge)
-//                              ▼
-//                     ┌─────────────────┐
-//         ┌──────────►│    RUNNING      │◄──────────┐
-//         │           └────────┬────────┘           │
-//         │                    │ RecordBegin        │ RecordEnd
-//         │                    ▼                    │
-//         │           ┌─────────────────┐           │
-//         │           │   RECORDING     │───────────┘
-//         │           └────────┬────────┘
-//         │                    │
-//         └────────────────────┘
-//               Stop (gate falling edge from any state)
+// ============================================================================
+// RECORDING STATE MACHINE TRANSITIONS
+// ============================================================================
+//
+//   REC_IDLE ──Record ON + Step──────────► REC_STEP
+//   REC_IDLE ──Record ON + Live + running─► REC_LIVE
+//   REC_IDLE ──Record ON + Live + stopped─► REC_LIVE_PENDING
+//
+//   REC_LIVE ──Record OFF / Transport stop─► REC_IDLE
+//   REC_LIVE ──Mode changed to Step───────► REC_STEP
+//
+//   REC_STEP ──Record OFF─────────────────► REC_IDLE
+//   REC_STEP ──Mode to Live + running─────► REC_LIVE
+//   REC_STEP ──Mode to Live + stopped─────► REC_LIVE_PENDING
+//
+//   REC_LIVE_PENDING ──Record OFF─────────► REC_IDLE
+//   REC_LIVE_PENDING ──Mode to Step───────► REC_STEP
+//   REC_LIVE_PENDING ──Transport starts───► REC_LIVE
 //
 
-// Transport state query helpers
+// Transport state query helper
 static inline bool transportIsRunning(TransportState state) {
     return state != TRANSPORT_STOPPED;
 }
 
-static inline bool transportIsRecording(TransportState state) {
-    return state == TRANSPORT_RECORDING;
+// Recording state query helpers
+static inline bool isRecording(RecordState state) {
+    return state != REC_IDLE;
+}
+static inline bool isLiveRecording(RecordState state) {
+    return state == REC_LIVE;
+}
+static inline bool isStepRecording(RecordState state) {
+    return state == REC_STEP;
 }
 
 // State transition: Start playback (gate rising edge)
@@ -70,20 +86,6 @@ static inline TransportState transportTransition_Start(TransportState current) {
 static inline TransportState transportTransition_Stop(TransportState current) {
     (void)current;  // Valid from any state
     return TRANSPORT_STOPPED;
-}
-
-// State transition: Begin recording (record parameter enabled)
-// Valid from: RUNNING only
-static inline TransportState transportTransition_RecordBegin(TransportState current) {
-    DEBUG_ASSERT(current == TRANSPORT_RUNNING, "RecordBegin requires RUNNING state");
-    return (current == TRANSPORT_RUNNING) ? TRANSPORT_RECORDING : current;
-}
-
-// State transition: End recording (record parameter disabled)
-// Valid from: RECORDING only
-static inline TransportState transportTransition_RecordEnd(TransportState current) {
-    DEBUG_ASSERT(current == TRANSPORT_RECORDING, "RecordEnd requires RECORDING state");
-    return (current == TRANSPORT_RECORDING) ? TRANSPORT_RUNNING : current;
 }
 
 // Direction constants (0-indexed to match parameter values)
@@ -201,11 +203,6 @@ static_assert(PARAMS_PER_TRACK == kTrackParamCount,
               "PARAMS_PER_TRACK must match kTrackParamCount enum");
 static_assert(GLOBAL_PARAMS == kGlobalParamCount,
               "GLOBAL_PARAMS must match kGlobalParamCount enum");
-
-// Step record query helper
-static inline bool isStepRecordActive(const int16_t* v) {
-    return v[kParamRecord] == 1 && v[kParamRecMode] == REC_MODE_STEP;
-}
 
 // Helper to get track parameter index
 static inline int trackParam(int track, int param) {
@@ -371,6 +368,9 @@ struct MidiLooper_DTC {
     // Transport state (explicit state machine)
     TransportState transportState;
 
+    // Recording state (explicit state machine)
+    RecordState recordState;
+
     // Gate/trigger edge detection
     bool prevGateHigh;
     bool prevClockHigh;
@@ -382,7 +382,6 @@ struct MidiLooper_DTC {
     // Edge detection for parameter changes
     int16_t lastRecord;
     int16_t lastTrack;
-    int16_t lastRecMode;
     int16_t lastClearTrack;
     int16_t lastClearAll;
 

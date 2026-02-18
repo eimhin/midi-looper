@@ -29,6 +29,15 @@ void handleTransportStart(MidiLooperAlgorithm* alg) {
     }
     dtc->stepTime = 0.0f;
     dtc->transportState = transportTransition_Start(dtc->transportState);
+
+    // Promote pending live recording now that transport is running
+    if (dtc->recordState == REC_LIVE_PENDING) {
+        int recTrack = alg->v[kParamRecTrack];
+        if (alg->v[kParamRecMode] == REC_MODE_REPLACE) {
+            clearTrackEvents(&alg->trackStates[recTrack].data);
+        }
+        dtc->recordState = REC_LIVE;
+    }
 }
 
 // Stop transport and clear all note state
@@ -36,8 +45,9 @@ void handleTransportStop(MidiLooperAlgorithm* alg, uint32_t where) {
     MidiLooper_DTC* dtc = alg->dtc;
 
     // Finalize any held notes before stopping
-    if (transportIsRecording(dtc->transportState)) {
+    if (dtc->recordState == REC_LIVE) {
         finalizeHeldNotes(alg);
+        dtc->recordState = REC_IDLE;
     }
 
     dtc->transportState = transportTransition_Stop(dtc->transportState);
