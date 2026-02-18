@@ -14,7 +14,6 @@
  * - 12 playback directions per track
  * - Continuous modifiers (Stability, Motion, Randomness, Gravity, Pedal)
  * - Binary modifiers (No Repeat, Step Mask)
- * - Read modes (Single, Arp N, Growing, Shrinking, Pedal Read)
  *
  * Inputs:
  * - In1: Run gate (rising edge resets and starts; falling edge stops)
@@ -78,8 +77,10 @@ _NT_algorithm* construct(const _NT_algorithmMemoryPtrs& ptrs,
     dtc->stepDuration = 0.1f;
     dtc->lastRecord = 0;
     dtc->lastTrack = 0;
+    dtc->lastRecMode = 0;
     dtc->lastClearTrack = 0;
     dtc->lastClearAll = 0;
+    dtc->stepRecPos = 0;
 
     // Initialize per-track state in DRAM
     for (int t = 0; t < numTracks; t++) {
@@ -103,7 +104,6 @@ _NT_algorithm* construct(const _NT_algorithmMemoryPtrs& ptrs,
         ts->lastStep = 1;
         ts->brownianPos = 1;
         ts->shufflePos = 1;
-        ts->readCyclePos = 0;
         ts->activeVel = 0;
         ts->lastEnabled = (t == 0) ? 1 : 0;
 
@@ -128,14 +128,16 @@ _NT_algorithm* construct(const _NT_algorithmMemoryPtrs& ptrs,
     }
 
     // Build dynamic parameter pages based on track count
-    // Page 0: Global
-    pThis->pageDefs[0] = { .name = "Global", .numParams = ARRAY_SIZE(pageGlobal), .group = 1, .unused = {0, 0}, .params = pageGlobal };
-    // Page 1: MIDI
-    pThis->pageDefs[1] = { .name = "MIDI", .numParams = ARRAY_SIZE(pageMidiConfig), .group = 2, .unused = {0, 0}, .params = pageMidiConfig };
-    // Track pages (2 to 2+numTracks-1)
+    // Page 0: Routing
+    pThis->pageDefs[0] = { .name = "Routing", .numParams = ARRAY_SIZE(pageRouting), .group = 0, .unused = {0, 0}, .params = pageRouting };
+    // Page 1: Global
+    pThis->pageDefs[1] = { .name = "Global", .numParams = ARRAY_SIZE(pageGlobal), .group = 1, .unused = {0, 0}, .params = pageGlobal };
+    // Page 2: MIDI
+    pThis->pageDefs[2] = { .name = "MIDI", .numParams = ARRAY_SIZE(pageMidiConfig), .group = 2, .unused = {0, 0}, .params = pageMidiConfig };
+    // Track pages (3 to 3+numTracks-1)
     for (int t = 0; t < numTracks; t++) {
         buildTrackPageIndices(pThis->pageTrackIndices[t], t);
-        pThis->pageDefs[2 + t] = {
+        pThis->pageDefs[3 + t] = {
             .name = trackPageNames[t],
             .numParams = PARAMS_PER_TRACK,
             .group = 3,
@@ -144,7 +146,7 @@ _NT_algorithm* construct(const _NT_algorithmMemoryPtrs& ptrs,
         };
     }
 
-    pThis->dynamicPages.numPages = 2 + numTracks;
+    pThis->dynamicPages.numPages = 3 + numTracks;
     pThis->dynamicPages.pages = pThis->pageDefs;
 
     // Set up parameters and pages
@@ -169,6 +171,11 @@ void parameterChanged(_NT_algorithm* self, int p) {
         if (trackParam == kTrackLength || trackParam == kTrackDivision) {
             if (track >= 0 && track < alg->numTracks) {
                 alg->trackStates[track].cache.invalidate();
+
+                // Reset step record cursor if the active recording track's grid changed
+                if (track == alg->v[kParamRecTrack] && alg->dtc->stepRecPos > 0) {
+                    alg->dtc->stepRecPos = 1;
+                }
             }
         }
     }
@@ -186,9 +193,11 @@ void step(_NT_algorithm* self, float* busFrames, int numFramesBy4) {
     int numFrames = numFramesBy4 * 4;
     float dt = (float)numFrames / (float)NT_globals.sampleRate;
 
-    // Read CV inputs
-    float gateVal = busFrames[numFrames - 1];
-    float clockVal = busFrames[numFrames + numFrames - 1];
+    // Read CV inputs from user-selected buses
+    int runBus = v[kParamRunInput];
+    int clkBus = v[kParamClockInput];
+    float gateVal = (runBus > 0) ? busFrames[(runBus - 1) * numFrames + numFrames - 1] : 0.0f;
+    float clockVal = (clkBus > 0) ? busFrames[(clkBus - 1) * numFrames + numFrames - 1] : 0.0f;
 
     bool gateHigh = gateVal > GATE_THRESHOLD_HIGH;
     bool gateLow = gateVal < GATE_THRESHOLD_LOW;
@@ -238,6 +247,86 @@ void step(_NT_algorithm* self, float* busFrames, int numFramesBy4) {
     dtc->stepTime += dt;
     processDelayedNotes(alg, dt);
 
+    // Record/mode/track change detection (transport-independent)
+    {
+        int record = v[kParamRecord];
+        int recMode = v[kParamRecMode];
+        int recTrack = v[kParamRecTrack];
+
+        // Handle recording track change
+        if (recTrack != dtc->lastTrack) {
+            clearHeldNotes(alg);
+            if (dtc->stepRecPos > 0) {
+                dtc->stepRecPos = 1;
+            }
+            dtc->lastTrack = recTrack;
+        }
+
+        // Handle record or mode changes
+        bool recordChanged = (record != dtc->lastRecord);
+        bool modeChanged = (recMode != dtc->lastRecMode);
+
+        if (recordChanged || modeChanged) {
+            bool wasStepMode = (dtc->lastRecMode == REC_MODE_STEP);
+            bool isStepMode = (recMode == REC_MODE_STEP);
+            bool isRecording = (record == 1);
+            bool consumed = true;
+
+            if (recordChanged) {
+                if (isRecording) {
+                    // Record turned ON
+                    if (isStepMode) {
+                        dtc->stepRecPos = 1;
+                    } else if (transportIsRunning(dtc->transportState)) {
+                        dtc->transportState = transportTransition_RecordBegin(dtc->transportState);
+                        if (recMode == REC_MODE_REPLACE) {
+                            clearTrackEvents(&alg->trackStates[recTrack].data);
+                        }
+                    } else {
+                        // Live mode, transport not running: defer until transport starts
+                        consumed = false;
+                    }
+                } else {
+                    // Record turned OFF
+                    if (wasStepMode) {
+                        dtc->stepRecPos = 0;
+                    }
+                    if (transportIsRecording(dtc->transportState)) {
+                        finalizeHeldNotes(alg);
+                        dtc->transportState = transportTransition_RecordEnd(dtc->transportState);
+                    }
+                }
+            } else if (modeChanged && isRecording) {
+                // Mode changed while record is ON
+                if (isStepMode) {
+                    // Changed TO Step mode
+                    if (transportIsRecording(dtc->transportState)) {
+                        finalizeHeldNotes(alg);
+                        dtc->transportState = transportTransition_RecordEnd(dtc->transportState);
+                    }
+                    dtc->stepRecPos = 1;
+                } else if (wasStepMode) {
+                    // Changed FROM Step mode
+                    dtc->stepRecPos = 0;
+                    if (transportIsRunning(dtc->transportState)) {
+                        dtc->transportState = transportTransition_RecordBegin(dtc->transportState);
+                        if (recMode == REC_MODE_REPLACE) {
+                            clearTrackEvents(&alg->trackStates[recTrack].data);
+                        }
+                    } else {
+                        // Live mode, transport not running: defer until transport starts
+                        consumed = false;
+                    }
+                }
+            }
+
+            if (consumed) {
+                dtc->lastRecord = record;
+                dtc->lastRecMode = recMode;
+            }
+        }
+    }
+
     // Clock trigger processing
     if (clockRising && transportIsRunning(dtc->transportState)) {
         // Update step duration estimate
@@ -246,29 +335,7 @@ void step(_NT_algorithm* self, float* busFrames, int numFramesBy4) {
         }
         dtc->stepTime = 0.0f;
 
-        int recTrack = v[kParamRecTrack];
         bool panicOnWrap = (v[kParamPanicOnWrap] == 1);
-
-        // Handle recording track change
-        if (recTrack != dtc->lastTrack) {
-            clearHeldNotes(alg);
-            dtc->lastTrack = recTrack;
-        }
-
-        // Handle record state change
-        int record = v[kParamRecord];
-        if (record != dtc->lastRecord) {
-            if (record == 1) {
-                dtc->transportState = transportTransition_RecordBegin(dtc->transportState);
-                if (v[kParamRecMode] == 0) {
-                    clearTrackEvents(&alg->trackStates[recTrack].data);
-                }
-            } else {
-                finalizeHeldNotes(alg);
-                dtc->transportState = transportTransition_RecordEnd(dtc->transportState);
-            }
-            dtc->lastRecord = record;
-        }
 
         // Process each track
         for (int t = 0; t < alg->numTracks; t++) {
@@ -330,7 +397,17 @@ void midiMessage(_NT_algorithm* self, uint8_t byte0, uint8_t byte1, uint8_t byte
         }
     }
 
-    // Recording - only process if in recording state
+    // Step recording - process independently of transport
+    if (dtc->stepRecPos > 0 && isStepRecordActive(v)) {
+        if (isNoteOn) {
+            stepRecordNoteOn(alg, track, byte1, byte2);
+        } else if (isNoteOff) {
+            stepRecordNoteOff(alg, track, byte1);
+        }
+        return;
+    }
+
+    // Live recording - only process if in recording state
     if (!transportIsRecording(dtc->transportState)) return;
 
     // Create recording context with current state (uses cached quantize)
@@ -408,7 +485,7 @@ static const _NT_factory factory = {
 uintptr_t pluginEntry(_NT_selector selector, uint32_t data) {
     switch (selector) {
         case kNT_selector_version:
-            return kNT_apiVersion12;
+            return kNT_apiVersion13;
         case kNT_selector_numFactories:
             return 1;
         case kNT_selector_factoryInfo:

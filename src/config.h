@@ -48,12 +48,12 @@ static constexpr int MAX_DELAYED_NOTES = 64;    // Humanization delay buffer siz
 // PARAMETER LAYOUT
 // ============================================================================
 
-static constexpr int PARAMS_PER_TRACK = 19;     // Parameters per track
-static constexpr int GLOBAL_PARAMS = 9;         // Global parameters (Record, Rec Track, etc.)
+static constexpr int PARAMS_PER_TRACK = 17;     // Parameters per track
+static constexpr int GLOBAL_PARAMS = 11;        // Global parameters (Run Input, Clock Input, Record, etc.)
 
 // Derived constants (do not modify directly)
 static constexpr int MAX_TOTAL_PARAMS = GLOBAL_PARAMS + (PARAMS_PER_TRACK * MAX_TRACKS);
-static constexpr int MAX_PAGES = 2 + MAX_TRACKS;  // Global + MIDI + track pages
+static constexpr int MAX_PAGES = 3 + MAX_TRACKS;  // Routing + Global + MIDI + track pages
 
 // ============================================================================
 // ALGORITHM TUNING

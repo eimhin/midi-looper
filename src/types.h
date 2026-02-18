@@ -110,6 +110,11 @@ static constexpr int MASK_SPARSE = 5;
 static constexpr int MASK_DENSE = 6;
 static constexpr int MASK_RANDOM = 7;
 
+// Recording mode constants
+static constexpr int REC_MODE_REPLACE = 0;
+static constexpr int REC_MODE_OVERDUB = 1;
+static constexpr int REC_MODE_STEP    = 2;
+
 // Quantize values mapping (index 0-4 -> actual division)
 static constexpr int QUANTIZE_VALUES[] = { 1, 2, 4, 8, 16 };
 
@@ -151,9 +156,11 @@ static constexpr float GATE_THRESHOLD_LOW = 0.5f;
 // PARAMETER ENUMS
 // ============================================================================
 
-// Global parameter indices (0-8)
+// Global parameter indices (0-10)
 enum {
-    kParamRecord = 0,
+    kParamRunInput = 0,    // CV input bus selector for run/gate
+    kParamClockInput,      // CV input bus selector for clock/trigger
+    kParamRecord,
     kParamRecTrack,
     kParamRecMode,
     kParamRecSnap,
@@ -163,10 +170,10 @@ enum {
     kParamClearTrack,
     kParamClearAll,
 
-    kGlobalParamCount  // = 9
+    kGlobalParamCount  // = 11
 };
 
-// Per-track parameter offsets (0-18)
+// Per-track parameter offsets (0-16)
 enum {
     kTrackEnabled = 0,
     kTrackLength,
@@ -185,10 +192,8 @@ enum {
     kTrackPedalStep,
     kTrackNoRepeat,
     kTrackStepMask,
-    kTrackReadMode,
-    kTrackReadWindow,
 
-    kTrackParamCount  // = 19
+    kTrackParamCount  // = 17
 };
 
 // Validate parameter layout matches config constants
@@ -196,6 +201,11 @@ static_assert(PARAMS_PER_TRACK == kTrackParamCount,
               "PARAMS_PER_TRACK must match kTrackParamCount enum");
 static_assert(GLOBAL_PARAMS == kGlobalParamCount,
               "GLOBAL_PARAMS must match kGlobalParamCount enum");
+
+// Step record query helper
+static inline bool isStepRecordActive(const int16_t* v) {
+    return v[kParamRecord] == 1 && v[kParamRecMode] == REC_MODE_STEP;
+}
 
 // Helper to get track parameter index
 static inline int trackParam(int track, int param) {
@@ -260,12 +270,6 @@ struct TrackParams {
     // Binary modifiers
     int noRepeat() const { return raw(kTrackNoRepeat); }
     int stepMask() const { return raw(kTrackStepMask); }
-
-    // Read mode
-    int readMode() const { return raw(kTrackReadMode); }
-    int readWindow(int loopLen) const {
-        return clampParam(raw(kTrackReadWindow), 1, loopLen);
-    }
 };
 
 // ============================================================================
@@ -352,7 +356,6 @@ struct TrackState {
     uint8_t lastStep;       // Previous step (for no-repeat)
     uint8_t brownianPos;    // Brownian walk position
     uint8_t shufflePos;     // Position in shuffle order
-    uint8_t readCyclePos;   // Position in read cycle
     uint8_t activeVel;      // Highest active velocity (for UI)
 
     // Parameter change detection
@@ -379,8 +382,12 @@ struct MidiLooper_DTC {
     // Edge detection for parameter changes
     int16_t lastRecord;
     int16_t lastTrack;
+    int16_t lastRecMode;
     int16_t lastClearTrack;
     int16_t lastClearAll;
+
+    // Step record state
+    uint8_t stepRecPos;  // Step record cursor: 1-based division-step index, 0 = inactive
 
     // Input display
     uint8_t inputVel;

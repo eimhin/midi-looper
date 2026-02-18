@@ -15,7 +15,7 @@
 
 static const char* const recordStrings[] = { "Off", "On", NULL };
 static const char* const recTrackStrings[] = { "1", "2", "3", "4", NULL };
-static const char* const recModeStrings[] = { "Replace", "Overdub", NULL };
+static const char* const recModeStrings[] = { "Replace", "Overdub", "Step", NULL };
 static const char* const midiDestStrings[] = { "Breakout", "SelectBus", "USB", "Internal", "All", NULL };
 static const char* const noYesStrings[] = { "No", "Yes", NULL };
 static const char* const divisionStrings[] = { "1", "2", "4", "8", "16", NULL };
@@ -26,15 +26,12 @@ static const char* const directionStrings[] = {
 static const char* const stepMaskStrings[] = {
     "All", "Odds", "Evens", "1st Half", "2nd Half", "Sparse", "Dense", "Random", NULL
 };
-static const char* const readModeStrings[] = {
-    "Single", "Arp N", "Growing", "Shrinking", "Pedal Read", NULL
-};
 
 // ============================================================================
 // PARAMETER DEFINITIONS
 // ============================================================================
 
-// Track parameter macro - generates 19 parameters per track
+// Track parameter macro - generates 17 parameters per track
 // DEF_ENABLED: default for Enabled (1 for track 1, 0 for others)
 // DEF_CHANNEL: default MIDI channel (1-4 for tracks 1-4)
 #define TRACK_PARAMS(DEF_ENABLED, DEF_CHANNEL) \
@@ -54,16 +51,18 @@ static const char* const readModeStrings[] = {
     { .name = "Pedal", .min = 0, .max = 100, .def = 0, .unit = kNT_unitPercent, .scaling = 0, .enumStrings = NULL }, \
     { .name = "Pedal Step", .min = 1, .max = MAX_STEPS, .def = 1, .unit = kNT_unitNone, .scaling = 0, .enumStrings = NULL }, \
     { .name = "No Repeat", .min = 0, .max = 1, .def = 0, .unit = kNT_unitEnum, .scaling = 0, .enumStrings = noYesStrings }, \
-    { .name = "Step Mask", .min = 0, .max = 7, .def = 0, .unit = kNT_unitEnum, .scaling = 0, .enumStrings = stepMaskStrings }, \
-    { .name = "Read Mode", .min = 0, .max = 4, .def = 0, .unit = kNT_unitEnum, .scaling = 0, .enumStrings = readModeStrings }, \
-    { .name = "Read Window", .min = 1, .max = 8, .def = 2, .unit = kNT_unitNone, .scaling = 0, .enumStrings = NULL },
+    { .name = "Step Mask", .min = 0, .max = 7, .def = 0, .unit = kNT_unitEnum, .scaling = 0, .enumStrings = stepMaskStrings },
 
-// Parameter definitions (85 total)
+// Parameter definitions (79 total)
 static const _NT_parameter parameters[] = {
-    // Global parameters (0-8)
+    // Routing parameters (0-1)
+    NT_PARAMETER_CV_INPUT("Run", 0, 1)     // default bus 1, 0 = none allowed
+    NT_PARAMETER_CV_INPUT("Clock", 0, 2)   // default bus 2, 0 = none allowed
+
+    // Global parameters (2-10)
     { .name = "Record", .min = 0, .max = 1, .def = 0, .unit = kNT_unitEnum, .scaling = 0, .enumStrings = recordStrings },
     { .name = "Rec Track", .min = 0, .max = 3, .def = 0, .unit = kNT_unitEnum, .scaling = 0, .enumStrings = recTrackStrings },
-    { .name = "Rec Mode", .min = 0, .max = 1, .def = 0, .unit = kNT_unitEnum, .scaling = 0, .enumStrings = recModeStrings },
+    { .name = "Rec Mode", .min = 0, .max = 2, .def = 0, .unit = kNT_unitEnum, .scaling = 0, .enumStrings = recModeStrings },
     { .name = "Rec Snap", .min = 50, .max = 100, .def = 75, .unit = kNT_unitPercent, .scaling = 0, .enumStrings = NULL },
     { .name = "MIDI In Ch", .min = 0, .max = 16, .def = 0, .unit = kNT_unitNone, .scaling = 0, .enumStrings = NULL },
     { .name = "MIDI Out Dest", .min = 0, .max = 4, .def = 2, .unit = kNT_unitEnum, .scaling = 0, .enumStrings = midiDestStrings },
@@ -71,7 +70,7 @@ static const _NT_parameter parameters[] = {
     { .name = "Clear Track", .min = 0, .max = 1, .def = 0, .unit = kNT_unitEnum, .scaling = 0, .enumStrings = noYesStrings },
     { .name = "Clear All", .min = 0, .max = 1, .def = 0, .unit = kNT_unitEnum, .scaling = 0, .enumStrings = noYesStrings },
 
-    // Track parameters (9-84) - 19 params per track
+    // Track parameters (11-78) - 17 params per track
     TRACK_PARAMS(1, 1)  // Track 1: enabled by default, channel 1
     TRACK_PARAMS(0, 2)  // Track 2: disabled by default, channel 2
     TRACK_PARAMS(0, 3)  // Track 3: disabled by default, channel 3
@@ -83,6 +82,9 @@ static const _NT_parameter parameters[] = {
 // ============================================================================
 // PARAMETER PAGES
 // ============================================================================
+
+// Page 0: Routing (Input bus selection)
+static const uint8_t pageRouting[] = { kParamRunInput, kParamClockInput };
 
 // Page 1: Global (Recording)
 static const uint8_t pageGlobal[] = {

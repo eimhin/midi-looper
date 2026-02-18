@@ -38,7 +38,7 @@ bool drawUI(MidiLooperAlgorithm* alg) {
     }
 
     // Record indicator (circle)
-    if (transportIsRecording(dtc->transportState)) {
+    if (transportIsRecording(dtc->transportState) || dtc->stepRecPos > 0) {
         // Draw filled record circle
         for (int y = UI_REC_CENTER_Y - UI_REC_RADIUS; y <= UI_REC_CENTER_Y + UI_REC_RADIUS; y++) {
             int dy = y - UI_REC_CENTER_Y;
@@ -55,9 +55,21 @@ bool drawUI(MidiLooperAlgorithm* alg) {
             NT_drawShapeI(kNT_line, UI_REC_CENTER_X - xOffset, y, UI_REC_CENTER_X + xOffset, y, UI_BRIGHTNESS_MAX);
         }
     } else {
-        // Draw dim circle outline
-        NT_drawShapeI(kNT_circle, UI_REC_CENTER_X - UI_REC_RADIUS, UI_REC_CENTER_Y - UI_REC_RADIUS,
-                      UI_REC_CENTER_X + UI_REC_RADIUS, UI_REC_CENTER_Y + UI_REC_RADIUS, UI_BRIGHTNESS_DIM);
+        // Draw dim circle outline manually (kNT_circle renders incorrectly on hardware)
+        int r2 = UI_REC_RADIUS * UI_REC_RADIUS;
+        for (int y = UI_REC_CENTER_Y - UI_REC_RADIUS; y <= UI_REC_CENTER_Y + UI_REC_RADIUS; y++) {
+            int dy = y - UI_REC_CENTER_Y;
+            int dy2 = dy * dy;
+            int xOffset = 0;
+            for (int x = UI_REC_RADIUS; x >= 0; x--) {
+                if (x * x + dy2 <= r2) {
+                    xOffset = x;
+                    break;
+                }
+            }
+            NT_drawShapeI(kNT_point, UI_REC_CENTER_X - xOffset, y, 0, 0, UI_BRIGHTNESS_DIM);
+            NT_drawShapeI(kNT_point, UI_REC_CENTER_X + xOffset, y, 0, 0, UI_BRIGHTNESS_DIM);
+        }
     }
 
     // Division step squares (only if recording track is enabled)
@@ -68,7 +80,7 @@ bool drawUI(MidiLooperAlgorithm* alg) {
         int recQuantize = getCachedQuantize(v, recTrack, &alg->trackStates[recTrack].cache, loopLen);
         int numDivSteps = (recLen + recQuantize - 1) / recQuantize;
         int recRawStep = clampParam(alg->trackStates[recTrack].step, 1, recLen);
-        int currentDivStep = ((recRawStep - 1) / recQuantize) + 1;
+        int currentDivStep = (dtc->stepRecPos > 0) ? dtc->stepRecPos : ((recRawStep - 1) / recQuantize) + 1;
         int maxSquares = (numDivSteps < 16) ? numDivSteps : 16;
         int displayStep = ((currentDivStep - 1) % maxSquares) + 1;
 
@@ -83,11 +95,11 @@ bool drawUI(MidiLooperAlgorithm* alg) {
     }
 
     // Input velocity meter
-    NT_drawText(UI_INPUT_LABEL_X, UI_LABEL_Y, "I:", 15, kNT_textLeft, kNT_textTiny);
+    NT_drawText(UI_INPUT_LABEL_X, UI_LABEL_Y, "I:", 15, kNT_textLeft, kNT_textNormal);
     drawVelBar(UI_INPUT_BAR_X, dtc->inputVel);
 
     // Output velocity meters
-    NT_drawText(UI_OUTPUT_LABEL_X, UI_LABEL_Y, "O:", 15, kNT_textLeft, kNT_textTiny);
+    NT_drawText(UI_OUTPUT_LABEL_X, UI_LABEL_Y, "O:", 15, kNT_textLeft, kNT_textNormal);
     for (int t = 0; t < alg->numTracks; t++) {
         drawVelBar(UI_OUTPUT_BAR_X + t * UI_OUTPUT_BAR_SPACE, alg->trackStates[t].activeVel);
     }
@@ -125,18 +137,18 @@ bool drawUI(MidiLooperAlgorithm* alg) {
         label[1] = '1' + t;
         label[2] = ':';
         label[3] = '\0';
-        NT_drawText(x, UI_TRACK_TEXT_Y, label, textBrightness, kNT_textLeft, kNT_textTiny);
+        NT_drawText(x, UI_TRACK_TEXT_Y, label, textBrightness, kNT_textLeft, kNT_textNormal);
 
         // Step position
         char stepStr[8];
         NT_intToString(stepStr, divStep);
-        NT_drawText(x + 20, UI_TRACK_TEXT_Y, stepStr, textBrightness, kNT_textLeft, kNT_textTiny);
+        NT_drawText(x + 20, UI_TRACK_TEXT_Y, stepStr, textBrightness, kNT_textLeft, kNT_textNormal);
 
         // Length
         char lenStr[8];
         int lenChars = NT_intToString(lenStr, len);
-        NT_drawText(x + UI_TRACK_BOX_WIDTH - 2 - lenChars * UI_CHAR_WIDTH, UI_TRACK_TEXT_Y, lenStr, textBrightness, kNT_textLeft, kNT_textTiny);
+        NT_drawText(x + UI_TRACK_BOX_WIDTH - 2 - lenChars * UI_CHAR_WIDTH, UI_TRACK_TEXT_Y, lenStr, textBrightness, kNT_textLeft, kNT_textNormal);
     }
 
-    return true;  // Hide standard parameter line
+    return false;  // Show standard parameter line at top
 }

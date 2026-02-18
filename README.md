@@ -1,17 +1,120 @@
 # MIDI Looper
 
-A MIDI looper plugin for the Expert Sleepers disting NT eurorack module.
+A multi-track MIDI step recorder/sequencer plugin for the Expert Sleepers disting NT eurorack module. Records MIDI note input and plays it back with 12 playback directions and probability-based modifiers.
 
 ## Features
 
-- **Dual-target build system**: Build for hardware or nt_emu testing
-- **GitHub Actions CI/CD**: Automatic builds and releases on version tags
+### Tracks
+
+- 1-4 independently configurable tracks (set via specification)
+- Up to 128 steps per track
+- Up to 8 polyphonic note events per step
+- Independent length, direction, channel, and modifiers per track
+- Track 1 enabled by default, tracks 2-4 disabled
+
+### CV Inputs
+
+- **Run (In1)**: Gate input. Rising edge resets position and starts playback. Falling edge stops.
+- **Clock (In2)**: Trigger input. Each rising edge advances the step position.
+
+### Recording
+
+- **Record**: Toggle recording on/off (only while transport is running)
+- **Rec Track**: Select which track to record into (1-4)
+- **Rec Mode**: Replace (clears track first) or Overdub (adds to existing events)
+- **Rec Snap**: Quantization snap threshold (50-100%, default 75%). Controls how aggressively notes snap to the quantization grid.
+- Records note on/off and velocity. Does not record pitch bend or CC.
+- Tracks up to 128 simultaneous held notes during recording
+- Held notes are finalized when recording stops
+
+### Quantization
+
+Applied during recording — events are snapped to the grid as they are recorded.
+
+- **Division**: Per-track quantization grid: 1 (off), 2, 4, 8, or 16
+- Finds the largest valid divisor that evenly divides the track length
+- Note duration is snapped to the nearest grid point (minimum one grid unit)
+
+### Playback Directions
+
+Each track has an independent direction setting:
+
+| Direction | Description                                        |
+| --------- | -------------------------------------------------- |
+| Forward   | Linear 1, 2, 3, ...                                |
+| Reverse   | Backward linear                                    |
+| Pendulum  | Bounces at endpoints without repeating them        |
+| Ping-Pong | Bounces at endpoints, repeating them               |
+| Stride    | Skips by a configurable stride size (2-16)         |
+| Odd/Even  | Plays all odd-numbered steps, then all even        |
+| Hopscotch | Alternating forward and backward single steps      |
+| Converge  | Step pairs converge toward the center              |
+| Diverge   | Step pairs diverge from the center                 |
+| Brownian  | Random walk from current position (delta -2 to +2) |
+| Random    | Fully random step selection (stateless)            |
+| Shuffle   | Randomized order without repetition (Fisher-Yates) |
+
+Brownian and Shuffle are stateful and reset on transport start.
+
+### Continuous Modifiers
+
+Probability-based transformations applied in this fixed order to the step chosen by the direction mode:
+
+1. **Stability** (0-100%): Probability to hold the current step instead of advancing
+2. **Motion** (0-100%): Random jitter applied to step position
+3. **Randomness** (0-100%): Probability to jump to a completely random step
+4. **Gravity** (0-100%): Bias toward the **Anchor** step (1-128)
+5. **Pedal** (0-100%): Probability to return to the **Pedal Step** (1-128)
+
+### Binary Modifiers
+
+Deterministic filters applied after continuous modifiers:
+
+- **No Repeat**: Skip if the resulting step is the same as the previous one
+- **Step Mask**: Filter steps through a pattern:
+  - All (no masking)
+  - Odds (odd-numbered steps only)
+  - Evens (even-numbered steps only)
+  - 1st Half / 2nd Half
+  - Sparse (every 3rd step)
+  - Dense (skip every 4th step)
+  - Random (50% probability per step)
+
+If a step is masked, the next allowed step is used instead.
+
+### Output
+
+- **Channel**: Per-track MIDI output channel (1-16, defaults to track number)
+- **Velocity**: Offset applied to recorded velocity (-64 to +64)
+- **Humanize**: Random delay per note (0-100ms)
+- **MIDI Out Dest**: Breakout, SelectBus, USB, Internal, or All
+- **Panic On Wrap**: Send all-notes-off when a track's loop wraps around
+- Notes from the input channel are passed through to the output
+
+### Track Management
+
+- **Clear Track**: Clear all events on the active recording track
+- **Clear All**: Clear all events on all tracks
+- **MIDI In Ch**: Input channel filter (0 = omni, 1-16 for a specific channel)
+
+### Display
+
+- Play/stop and record indicators
+- Quantization grid visualization (up to 16 divisions)
+- Input velocity meter
+- Per-track output velocity meters
+- Track info boxes showing current step, loop length, and recording status
+
+### State Persistence
+
+Track data and playback state are saved/loaded with presets via JSON serialization.
 
 ## Prerequisites
 
 ### ARM Toolchain (for hardware builds)
 
 **macOS:**
+
 ```bash
 brew install --cask gcc-arm-embedded
 ```
@@ -19,6 +122,7 @@ brew install --cask gcc-arm-embedded
 > **Note:** Use the cask version (`--cask gcc-arm-embedded`), not the formula (`arm-none-eabi-gcc`). The cask includes the required newlib headers.
 
 **Linux (Ubuntu/Debian):**
+
 ```bash
 sudo apt install gcc-arm-none-eabi
 ```
@@ -31,150 +135,43 @@ Download from [ARM Developer](https://developer.arm.com/tools-and-software/open-
 For testing without hardware, use the nt_emu VCV Rack module:
 https://github.com/expertsleepersltd/nt_emu
 
-## Getting Started
-
-### Clone with Submodules
+## Build Commands
 
 ```bash
-git clone --recursive https://github.com/yourusername/your-plugin.git
-cd your-plugin
+make hardware    # Build for disting NT hardware
+make test        # Build for nt_emu testing
+make both        # Build both targets
+make push        # Build and push to disting NT via MIDI
+make clean       # Clean build artifacts
+make help        # Show all options
 ```
-
-Or if already cloned:
-```bash
-git submodule update --init --recursive
-```
-
-### Build Commands
-
-```bash
-# Build for distingNT hardware
-make hardware
-
-# Build for nt_emu testing
-make test
-
-# Build both
-make both
-
-# Build and push to distingNT via MIDI
-make push
-
-# Clean build artifacts
-make clean
-
-# Show all options
-make help
-```
-
-## Testing with nt_emu
-
-1. Build the test target:
-   ```bash
-   make test
-   ```
-
-2. Copy the plugin to nt_emu's plugin directory:
-   ```bash
-   cp plugins/myplugin.dylib ~/Documents/nt_emu/plugins/
-   ```
-
-3. Load VCV Rack and add the nt_emu module
-
-4. Your plugin should appear in the algorithm list
 
 ## Deploying to Hardware
 
 ### Option 1: Direct MIDI Push
+
 ```bash
 make push
 ```
+
 Requires ntpush utility and MIDI connection to disting NT.
 
 ### Option 2: SD Card
-1. Build the hardware target:
-   ```bash
-   make hardware
-   ```
 
-2. Copy `plugins/myplugin.o` to the disting NT's SD card `plugins/` folder
-
+1. `make hardware`
+2. Copy the `.o` file from `plugins/` to the disting NT's SD card `plugins/` folder
 3. Restart or rescan plugins on the disting NT
-
-## Project Structure
-
-```
-.
-├── .github/workflows/
-│   └── release.yaml      # CI/CD: build on tag, create release
-├── distingNT_API/        # API submodule (git submodule)
-├── .gitmodules           # Submodule configuration
-├── .gitignore            # Build artifacts exclusions
-├── Makefile              # Dual-target build system
-├── myplugin.cpp          # Your plugin source
-└── README.md             # This file
-```
-
-## Customizing the Template
-
-1. **Rename your plugin**: Update `PLUGIN_NAME` in `Makefile`
-
-2. **Change the GUID**: In your `.cpp` file, change the `NT_MULTICHAR()` to a unique 4-character identifier
-
-3. **Update CI/CD**: In `.github/workflows/release.yaml`, update the output filename
-
-4. **Add more source files**: Update the `SOURCES` variable in `Makefile`
 
 ## Creating Releases
 
 Push a version tag to trigger the GitHub Action:
+
 ```bash
 git tag v1.0.0
 git push origin v1.0.0
 ```
 
-This will:
-1. Build the hardware plugin
-2. Create a GitHub Release
-3. Attach the `.o` file to the release
-
 ## API Reference
 
 - [distingNT API Documentation](https://github.com/expertsleepersltd/distingNT_API)
 - [disting NT User Manual](https://expert-sleepers.co.uk/distingNT.html)
-
-## Example Plugin Overview
-
-The included `myplugin.cpp` demonstrates:
-
-### MIDI Input
-```cpp
-void midiMessage(_NT_algorithm* self, uint8_t byte0, uint8_t byte1, uint8_t byte2) {
-    uint8_t status = byte0 & 0xF0;  // 0x90 = note on, 0x80 = note off
-    uint8_t channel = byte0 & 0x0F;
-    uint8_t note = byte1;
-    uint8_t velocity = byte2;
-    // Process MIDI data...
-}
-```
-
-### Parameter Pages with Groups
-```cpp
-static const _NT_parameterPage pages[] = {
-    { .name = "Main", .numParams = ..., .group = 1, .params = pageMain },
-    { .name = "Settings", .numParams = ..., .group = 2, .params = pageSettings },
-};
-```
-
-### Custom UI
-```cpp
-bool draw(_NT_algorithm* self) {
-    NT_drawText(10, 10, "Title", 15, kNT_textLeft, kNT_textNormal);
-    NT_drawShapeI(kNT_rectangle, x1, y1, x2, y2, brightness);
-    return true;  // Hide standard parameter display
-}
-```
-
-## License
-
-This template is provided as-is for educational purposes. See the distingNT API repository for API licensing terms.

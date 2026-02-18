@@ -22,7 +22,6 @@ void handleTransportStart(MidiLooperAlgorithm* alg) {
         ts->lastStep = 1;
         ts->brownianPos = 1;
         ts->shufflePos = 1;
-        ts->readCyclePos = 0;
 
         for (int s = 0; s < MAX_STEPS; s++) {
             ts->shuffleOrder[s] = (uint8_t)(s + 1);
@@ -57,7 +56,6 @@ void handleTransportStop(MidiLooperAlgorithm* alg, uint32_t where) {
 
         ts->brownianPos = 1;
         ts->shufflePos = 1;
-        ts->readCyclePos = 0;
     }
 
     for (int i = 0; i < MAX_DELAYED_NOTES; i++) {
@@ -232,21 +230,16 @@ static void emitNote(MidiLooperAlgorithm* alg, int track, NoteEvent* ev,
     }
 }
 
-// Play all events for selected steps on a track
-static void playTrackEvents(MidiLooperAlgorithm* alg, int track, int finalStep, int loopLen,
+// Play all events for the selected step on a track
+static void playTrackEvents(MidiLooperAlgorithm* alg, int track, int finalStep,
                             int velOffset, int humanize, int outCh, uint32_t where) {
-    int stepsToPlay[MAX_STEPS];
-    int numSteps = getStepsToEmit(alg, track, finalStep, loopLen, stepsToPlay);
+    int stepIdx = finalStep - 1;
+    if (stepIdx < 0 || stepIdx >= MAX_STEPS) return;
 
-    for (int si = 0; si < numSteps; si++) {
-        int stepIdx = stepsToPlay[si] - 1;
-        if (stepIdx < 0 || stepIdx >= MAX_STEPS) continue;
+    StepEvents* evs = &alg->trackStates[track].data.steps[stepIdx];
 
-        StepEvents* evs = &alg->trackStates[track].data.steps[stepIdx];
-
-        for (int e = 0; e < evs->count; e++) {
-            emitNote(alg, track, &evs->events[e], velOffset, humanize, outCh, where);
-        }
+    for (int e = 0; e < evs->count; e++) {
+        emitNote(alg, track, &evs->events[e], velOffset, humanize, outCh, where);
     }
 }
 
@@ -326,6 +319,6 @@ void processTrack(MidiLooperAlgorithm* alg, int track, uint32_t where, bool pani
 
     // Emit notes for the calculated step(s)
     if (enabled) {
-        playTrackEvents(alg, track, finalStep, loopLen, tp.velocity(), tp.humanize(), outCh, where);
+        playTrackEvents(alg, track, finalStep, tp.velocity(), tp.humanize(), outCh, where);
     }
 }

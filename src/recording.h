@@ -47,3 +47,7 @@ void recordNoteOn(MidiLooperAlgorithm* alg, const RecordingContext& ctx, uint8_t
 void recordNoteOff(MidiLooperAlgorithm* alg, const RecordingContext& ctx, uint8_t note);
 void finalizeHeldNotes(MidiLooperAlgorithm* alg);
 void clearHeldNotes(MidiLooperAlgorithm* alg);
+
+// Step record operations
+void stepRecordNoteOn(MidiLooperAlgorithm* alg, int track, uint8_t note, uint8_t velocity);
+void stepRecordNoteOff(MidiLooperAlgorithm* alg, int track, uint8_t note);

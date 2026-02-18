@@ -91,3 +91,51 @@ void clearHeldNotes(MidiLooperAlgorithm* alg) {
         alg->heldNotes[i].active = false;
     }
 }
+
+// ============================================================================
+// STEP RECORD OPERATIONS
+// ============================================================================
+
+void stepRecordNoteOn(MidiLooperAlgorithm* alg, int track, uint8_t note, uint8_t velocity) {
+    MidiLooper_DTC* dtc = alg->dtc;
+    if (dtc->stepRecPos == 0) return;
+
+    int loopLen;
+    int quantize = getCachedQuantize(alg->v, track, &alg->trackStates[track].cache, loopLen);
+
+    // Convert division-step to raw step (1-based)
+    int rawStep = (dtc->stepRecPos - 1) * quantize + 1;
+
+    // Duration = one quantize division, clamped to remaining loop
+    int duration = quantize;
+    int maxDuration = loopLen - rawStep + 1;
+    if (duration > maxDuration) duration = maxDuration;
+
+    int stepIdx = safeStepIndex(rawStep - 1);
+    StepEvents* evs = &alg->trackStates[safeTrackIndex(track)].data.steps[stepIdx];
+
+    if (!hasNoteEvent(evs, note)) {
+        addEvent(evs, note, velocity, (uint16_t)duration);
+    }
+}
+
+void stepRecordNoteOff(MidiLooperAlgorithm* alg, int track, uint8_t note) {
+    (void)note;  // Note identity not needed; we check all input notes
+    MidiLooper_DTC* dtc = alg->dtc;
+    if (dtc->stepRecPos == 0) return;
+
+    // Check if any input notes are still held
+    for (int n = 0; n < 128; n++) {
+        if (dtc->inputNotes[n]) return;  // Still holding notes, wait for chord
+    }
+
+    // All notes released - advance cursor
+    int loopLen;
+    int quantize = getCachedQuantize(alg->v, track, &alg->trackStates[track].cache, loopLen);
+    int numDivSteps = loopLen / quantize;
+
+    dtc->stepRecPos++;
+    if (dtc->stepRecPos > numDivSteps) {
+        dtc->stepRecPos = 1;
+    }
+}

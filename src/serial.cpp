@@ -72,18 +72,11 @@ void serialiseData(MidiLooperAlgorithm* alg, _NT_jsonStream& stream) {
         stream.addNumber((int)alg->trackStates[t].brownianPos);
     }
     stream.closeArray();
-
-    stream.addMemberName("readCyclePos");
-    stream.openArray();
-    for (int t = 0; t < numTracks; t++) {
-        stream.addNumber((int)alg->trackStates[t].readCyclePos);
-    }
-    stream.closeArray();
 }
 
 bool deserialiseData(MidiLooperAlgorithm* alg, _NT_jsonParse& parse) {
-    int maxTracks = alg->numTracks;  // Only load tracks we have allocated
-    int version = 1;  // Default for legacy data without version field
+    int maxTracks = alg->numTracks; // Only load tracks we have allocated
+    int version = 1;                // Default for legacy data without version field
 
     int numMembers;
     if (!parse.numberOfObjectMembers(numMembers)) return false;
@@ -93,14 +86,12 @@ bool deserialiseData(MidiLooperAlgorithm* alg, _NT_jsonParse& parse) {
             if (!parse.number(version)) return false;
             // Future: Add migration logic here when format changes
             // if (version < SERIAL_VERSION) { migrate... }
-        }
-        else if (parse.matchName("numTracks")) {
+        } else if (parse.matchName("numTracks")) {
             int savedTracks;
             if (!parse.number(savedTracks)) return false;
             // Ignore the saved value, we use our current allocation
             (void)savedTracks;
-        }
-        else if (parse.matchName("tracks")) {
+        } else if (parse.matchName("tracks")) {
             int fileTracks;
             if (!parse.numberOfArrayElements(fileTracks)) return false;
 
@@ -131,7 +122,8 @@ bool deserialiseData(MidiLooperAlgorithm* alg, _NT_jsonParse& parse) {
                                     if (!parse.number(dur)) return false;
 
                                     if (note >= 0 && note <= 127 && vel >= 0 && vel <= 127 && dur >= 1) {
-                                        addEvent(&alg->trackStates[t].data.steps[s], (uint8_t)note, (uint8_t)vel, (uint16_t)dur);
+                                        addEvent(&alg->trackStates[t].data.steps[s], (uint8_t)note, (uint8_t)vel,
+                                                 (uint16_t)dur);
                                     }
                                 }
                             }
@@ -157,8 +149,7 @@ bool deserialiseData(MidiLooperAlgorithm* alg, _NT_jsonParse& parse) {
 #endif
                 }
             }
-        }
-        else if (parse.matchName("shuffleOrder")) {
+        } else if (parse.matchName("shuffleOrder")) {
             int fileTracks;
             if (!parse.numberOfArrayElements(fileTracks)) return false;
 
@@ -182,8 +173,7 @@ bool deserialiseData(MidiLooperAlgorithm* alg, _NT_jsonParse& parse) {
                     if (!parse.number(val)) return false;
                 }
             }
-        }
-        else if (parse.matchName("shufflePos")) {
+        } else if (parse.matchName("shufflePos")) {
             int num;
             if (!parse.numberOfArrayElements(num)) return false;
             for (int t = 0; t < num && t < maxTracks; t++) {
@@ -195,8 +185,7 @@ bool deserialiseData(MidiLooperAlgorithm* alg, _NT_jsonParse& parse) {
                 int val;
                 if (!parse.number(val)) return false;
             }
-        }
-        else if (parse.matchName("brownianPos")) {
+        } else if (parse.matchName("brownianPos")) {
             int num;
             if (!parse.numberOfArrayElements(num)) return false;
             for (int t = 0; t < num && t < maxTracks; t++) {
@@ -208,21 +197,7 @@ bool deserialiseData(MidiLooperAlgorithm* alg, _NT_jsonParse& parse) {
                 int val;
                 if (!parse.number(val)) return false;
             }
-        }
-        else if (parse.matchName("readCyclePos")) {
-            int num;
-            if (!parse.numberOfArrayElements(num)) return false;
-            for (int t = 0; t < num && t < maxTracks; t++) {
-                int val;
-                if (!parse.number(val)) return false;
-                alg->trackStates[t].readCyclePos = (uint8_t)val;
-            }
-            for (int t = maxTracks; t < num; t++) {
-                int val;
-                if (!parse.number(val)) return false;
-            }
-        }
-        else {
+        } else {
 #ifdef DISTING_HARDWARE
             if (!parse.skipMember()) return false;
 #else
