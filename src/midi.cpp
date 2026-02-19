@@ -45,7 +45,7 @@ bool hasNoteEvent(const StepEvents* evs, uint8_t noteNum) {
 }
 
 void addEvent(StepEvents* evs, uint8_t note, uint8_t velocity, uint16_t duration) {
-    if (evs->count < MAX_EVENTS_PER_STEP) {
+    if (evs->count < MAX_EVENTS_PER_STEP && !hasNoteEvent(evs, note)) {
         evs->events[evs->count].note = note;
         evs->events[evs->count].velocity = velocity;
         evs->events[evs->count].duration = duration;

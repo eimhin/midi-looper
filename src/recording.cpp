@@ -52,9 +52,7 @@ void recordNoteOff(
     int heldStepIdx = safeStepIndex(held->quantizedStep - 1);
     StepEvents* evs = &alg->trackStates[heldTrack].data.steps[heldStepIdx];
 
-    if (!hasNoteEvent(evs, note)) {
-        addEvent(evs, note, held->velocity, (uint16_t)duration);
-    }
+    addEvent(evs, note, held->velocity, (uint16_t)duration);
 
     held->active = false;
 }
@@ -78,9 +76,7 @@ void finalizeHeldNotes(MidiLooperAlgorithm* alg) {
         int stepIdx = safeStepIndex(held->quantizedStep - 1);
         StepEvents* evs = &alg->trackStates[track].data.steps[stepIdx];
 
-        if (!hasNoteEvent(evs, (uint8_t)noteNum)) {
-            addEvent(evs, (uint8_t)noteNum, held->velocity, (uint16_t)duration);
-        }
+        addEvent(evs, (uint8_t)noteNum, held->velocity, (uint16_t)duration);
 
         held->active = false;
     }
@@ -114,9 +110,7 @@ void stepRecordNoteOn(MidiLooperAlgorithm* alg, int track, uint8_t note, uint8_t
     int stepIdx = safeStepIndex(rawStep - 1);
     StepEvents* evs = &alg->trackStates[safeTrackIndex(track)].data.steps[stepIdx];
 
-    if (!hasNoteEvent(evs, note)) {
-        addEvent(evs, note, velocity, (uint16_t)duration);
-    }
+    addEvent(evs, note, velocity, (uint16_t)duration);
 }
 
 void stepRecordNoteOff(MidiLooperAlgorithm* alg, int track, uint8_t note) {
