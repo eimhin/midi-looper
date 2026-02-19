@@ -18,6 +18,7 @@ SOURCES = midilooper.cpp \
           src/modifiers.cpp \
           src/recording.cpp \
           src/playback.cpp \
+          src/generate.cpp \
           src/ui.cpp \
           src/serial.cpp
 

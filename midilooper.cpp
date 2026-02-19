@@ -26,6 +26,7 @@
 #include <new>
 
 // Module headers
+#include "generate.h"
 #include "midi.h"
 #include "midi_utils.h"
 #include "params.h"
@@ -79,6 +80,7 @@ _NT_algorithm* construct(const _NT_algorithmMemoryPtrs& ptrs, const _NT_algorith
     dtc->lastTrack = 0;
     dtc->lastClearTrack = 0;
     dtc->lastClearAll = 0;
+    dtc->lastGenerate = 0;
     dtc->stepRecPos = 0;
 
     // Initialize per-track state in DRAM
@@ -139,17 +141,20 @@ _NT_algorithm* construct(const _NT_algorithmMemoryPtrs& ptrs, const _NT_algorith
                           .group = 2,
                           .unused = {0, 0},
                           .params = pageMidiConfig};
-    // Track pages (3 to 3+numTracks-1)
+    // Page 3: Generate
+    pThis->pageDefs[3] = {
+        .name = "Generate", .numParams = ARRAY_SIZE(pageGenerate), .group = 3, .unused = {0, 0}, .params = pageGenerate};
+    // Track pages (4 to 4+numTracks-1)
     for (int t = 0; t < numTracks; t++) {
         buildTrackPageIndices(pThis->pageTrackIndices[t], t);
-        pThis->pageDefs[3 + t] = {.name = trackPageNames[t],
+        pThis->pageDefs[4 + t] = {.name = trackPageNames[t],
                                   .numParams = PARAMS_PER_TRACK,
-                                  .group = 3,
+                                  .group = 4,
                                   .unused = {0, 0},
                                   .params = pThis->pageTrackIndices[t]};
     }
 
-    pThis->dynamicPages.numPages = 3 + numTracks;
+    pThis->dynamicPages.numPages = 4 + numTracks;
     pThis->dynamicPages.pages = pThis->pageDefs;
 
     // Set up parameters and pages
@@ -244,6 +249,16 @@ void step(_NT_algorithm* self, float* busFrames, int numFramesBy4) {
             }
         }
         dtc->lastClearAll = clearAll;
+    }
+
+    // Parameter change detection: Generate
+    int generate = v[kParamGenerate];
+    if (generate != dtc->lastGenerate) {
+        if (generate == 1) {
+            int track = v[kParamRecTrack];
+            executeGenerate(alg, track);
+        }
+        dtc->lastGenerate = generate;
     }
 
     // Timing and delayed notes

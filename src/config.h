@@ -13,47 +13,50 @@
 // #define MIDILOOPER_DEBUG
 
 #ifdef MIDILOOPER_DEBUG
-    // Debug logging macros - requires NT_logFormat or similar platform function
-    #define DEBUG_LOG(fmt, ...) NT_logFormat(fmt, ##__VA_ARGS__)
-    #define DEBUG_POOL_OVERFLOW(pool_name) DEBUG_LOG("Pool overflow: %s", pool_name)
-    #define DEBUG_ASSERT(cond, msg) do { if (!(cond)) DEBUG_LOG("Assert failed: %s", msg); } while(0)
+// Debug logging macros - requires NT_logFormat or similar platform function
+#define DEBUG_LOG(fmt, ...) NT_logFormat(fmt, ##__VA_ARGS__)
+#define DEBUG_POOL_OVERFLOW(pool_name) DEBUG_LOG("Pool overflow: %s", pool_name)
+#define DEBUG_ASSERT(cond, msg)                                                                                        \
+    do {                                                                                                               \
+        if (!(cond)) DEBUG_LOG("Assert failed: %s", msg);                                                              \
+    } while (0)
 #else
-    // No-op in release builds - zero overhead
-    #define DEBUG_LOG(fmt, ...) ((void)0)
-    #define DEBUG_POOL_OVERFLOW(pool_name) ((void)0)
-    #define DEBUG_ASSERT(cond, msg) ((void)0)
+// No-op in release builds - zero overhead
+#define DEBUG_LOG(fmt, ...) ((void)0)
+#define DEBUG_POOL_OVERFLOW(pool_name) ((void)0)
+#define DEBUG_ASSERT(cond, msg) ((void)0)
 #endif
 
 // ============================================================================
 // TRACK CONFIGURATION
 // ============================================================================
 
-static constexpr int MAX_TRACKS = 4;            // Maximum number of tracks
-static constexpr int MIN_TRACKS = 1;            // Minimum number of tracks
+static constexpr int MAX_TRACKS = 4; // Maximum number of tracks
+static constexpr int MIN_TRACKS = 1; // Minimum number of tracks
 
 // ============================================================================
 // SEQUENCE CONFIGURATION
 // ============================================================================
 
-static constexpr int MAX_STEPS = 128;           // Maximum steps per track
-static constexpr int MAX_EVENTS_PER_STEP = 8;   // Maximum polyphony per step
+static constexpr int MAX_STEPS = 128;         // Maximum steps per track
+static constexpr int MAX_EVENTS_PER_STEP = 8; // Maximum polyphony per step
 
 // ============================================================================
 // PERFORMANCE TUNING
 // ============================================================================
 
-static constexpr int MAX_DELAYED_NOTES = 64;    // Humanization delay buffer size
+static constexpr int MAX_DELAYED_NOTES = 64; // Humanization delay buffer size
 
 // ============================================================================
 // PARAMETER LAYOUT
 // ============================================================================
 
-static constexpr int PARAMS_PER_TRACK = 18;     // Parameters per track
-static constexpr int GLOBAL_PARAMS = 12;        // Global parameters (Run Input, Clock Input, Record, etc.)
+static constexpr int PARAMS_PER_TRACK = 18; // Parameters per track
+static constexpr int GLOBAL_PARAMS = 20;    // Global parameters (Run Input, Clock Input, Record, Generate, etc.)
 
 // Derived constants (do not modify directly)
 static constexpr int MAX_TOTAL_PARAMS = GLOBAL_PARAMS + (PARAMS_PER_TRACK * MAX_TRACKS);
-static constexpr int MAX_PAGES = 3 + MAX_TRACKS;  // Routing + Global + MIDI + track pages
+static constexpr int MAX_PAGES = 4 + MAX_TRACKS; // Routing + Global + MIDI + Generate + track pages
 
 // ============================================================================
 // ALGORITHM TUNING
@@ -64,8 +67,8 @@ static constexpr int BROWNIAN_DELTA_MIN = -2;
 static constexpr int BROWNIAN_DELTA_MAX = 2;
 
 // Step mask divisors
-static constexpr int MASK_SPARSE_DIVISOR = 3;   // Every 3rd step (step % 3 == 1)
-static constexpr int MASK_DENSE_DIVISOR = 4;    // Skip every 4th step (step % 4 != 0)
+static constexpr int MASK_SPARSE_DIVISOR = 3; // Every 3rd step (step % 3 == 1)
+static constexpr int MASK_DENSE_DIVISOR = 4;  // Skip every 4th step (step % 4 != 0)
 
 // Random mask probability threshold (0.0 to 1.0)
 static constexpr float MASK_RANDOM_THRESHOLD = 0.5f;

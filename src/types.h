@@ -112,6 +112,12 @@ static constexpr int MASK_SPARSE = 5;
 static constexpr int MASK_DENSE = 6;
 static constexpr int MASK_RANDOM = 7;
 
+// Generate mode constants
+static constexpr int GEN_MODE_NEW = 0;
+static constexpr int GEN_MODE_REORDER = 1;
+static constexpr int GEN_MODE_REPITCH = 2;
+static constexpr int GEN_MODE_INVERT = 3;
+
 // Recording mode constants
 static constexpr int REC_MODE_REPLACE = 0;
 static constexpr int REC_MODE_OVERDUB = 1;
@@ -172,8 +178,16 @@ enum {
     kParamScaleType,
     kParamClearTrack,
     kParamClearAll,
+    kParamGenerate,
+    kParamGenMode,
+    kParamGenDensity,
+    kParamGenBias,
+    kParamGenRange,
+    kParamGenNoteRand,
+    kParamGenVelVar,
+    kParamGenTies,
 
-    kGlobalParamCount  // = 11
+    kGlobalParamCount  // = 20
 };
 
 // Per-track parameter offsets (0-16)
@@ -387,6 +401,7 @@ struct MidiLooper_DTC {
     int16_t lastTrack;
     int16_t lastClearTrack;
     int16_t lastClearAll;
+    int16_t lastGenerate;
 
     // Step record state
     uint8_t stepRecPos;  // Step record cursor: 1-based division-step index, 0 = inactive
