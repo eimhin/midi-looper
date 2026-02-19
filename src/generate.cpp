@@ -25,6 +25,7 @@ static void generateNew(MidiLooperAlgorithm* alg, int track) {
     int noteRand = v[kParamGenNoteRand];
     int velVar = v[kParamGenVelVar];
     int ties = v[kParamGenTies];
+    int gateRand = v[kParamGenGateRand];
     int scaleRoot = v[kParamScaleRoot];
     int scaleType = v[kParamScaleType];
 
@@ -59,17 +60,40 @@ static void generateNew(MidiLooperAlgorithm* alg, int track) {
         }
         vel = clamp(vel, 1, 127);
 
-        // Duration: base is quantize unit (or 1 if no division)
-        uint16_t dur = (quantize > 1) ? (uint16_t)quantize : 1;
-
-        // Ties: chance to extend duration by one quantize unit
-        if (randRange(alg->randState, 1, 100) <= ties) {
-            uint16_t extension = (quantize > 1) ? (uint16_t)quantize : 1;
-            dur += extension;
-        }
+        // Duration: base is quantize unit, randomly shortened by gateRand %
+        int maxDur = (quantize > 1) ? quantize : 1;
+        int minDur = maxDur - (maxDur * gateRand) / 100;
+        if (minDur < 1) minDur = 1;
+        int durVal = (minDur < maxDur) ? randRange(alg->randState, minDur, maxDur) : maxDur;
+        uint16_t dur = (uint16_t)durVal;
 
         int idx = safeStepIndex(s - 1);
         addEvent(&ts->data.steps[idx], (uint8_t)note, (uint8_t)vel, dur);
+    }
+
+    // Pass 2: Ties - extend note duration to reach the next note
+    if (ties > 0) {
+        for (int s = 0; s < loopLen; s++) {
+            StepEvents* evs = &ts->data.steps[s];
+            if (evs->count == 0) continue;
+            if (randRange(alg->randState, 1, 100) > ties) continue;
+
+            // Scan forward (wrapping) to find next occupied step
+            int dist = 0;
+            for (int d = 1; d <= loopLen - 1; d++) {
+                int nextIdx = (s + d) % loopLen;
+                if (ts->data.steps[nextIdx].count > 0) {
+                    dist = d;
+                    break;
+                }
+            }
+            if (dist == 0) continue;  // Only note in loop, skip
+
+            // Extend all events on this step to reach the next note
+            for (int e = 0; e < evs->count; e++) {
+                evs->events[e].duration = (uint16_t)dist;
+            }
+        }
     }
 }
 

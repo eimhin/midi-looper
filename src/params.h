@@ -83,8 +83,9 @@ static const _NT_parameter parameters[] = {
     {.name = "Note Rand", .min = 0, .max = 100, .def = 50, .unit = kNT_unitPercent, .scaling = 0, .enumStrings = NULL},
     {.name = "Vel Var", .min = 0, .max = 100, .def = 20, .unit = kNT_unitPercent, .scaling = 0, .enumStrings = NULL},
     {.name = "Ties", .min = 0, .max = 100, .def = 20, .unit = kNT_unitPercent, .scaling = 0, .enumStrings = NULL},
+    {.name = "Gate Rand", .min = 0, .max = 100, .def = 0, .unit = kNT_unitPercent, .scaling = 0, .enumStrings = NULL},
 
-    // Track parameters (20-91) - 18 params per track
+    // Track parameters (21-92) - 18 params per track
     TRACK_PARAMS(1, 2) // Track 1: enabled by default, channel 2
     TRACK_PARAMS(0, 3) // Track 2: disabled by default, channel 3
     TRACK_PARAMS(0, 4) // Track 3: disabled by default, channel 4
@@ -107,8 +108,9 @@ static const uint8_t pageGlobal[] = {kParamRecord, kParamRecTrack, kParamRecMode
 static const uint8_t pageMidiConfig[] = {kParamMidiInCh, kParamPanicOnWrap, kParamScaleRoot, kParamScaleType};
 
 // Page 3: Generate
-static const uint8_t pageGenerate[] = {kParamGenerate, kParamGenMode,     kParamGenDensity, kParamGenBias,
-                                       kParamGenRange, kParamGenNoteRand, kParamGenVelVar,  kParamGenTies};
+static const uint8_t pageGenerate[] = {kParamGenerate,    kParamGenMode,     kParamGenDensity, kParamGenBias,
+                                       kParamGenRange,    kParamGenNoteRand, kParamGenVelVar,  kParamGenTies,
+                                       kParamGenGateRand};
 
 // ============================================================================
 // DYNAMIC PAGE BUILDING (for specification-based track count)

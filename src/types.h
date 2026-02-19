@@ -186,8 +186,9 @@ enum {
     kParamGenNoteRand,
     kParamGenVelVar,
     kParamGenTies,
+    kParamGenGateRand,
 
-    kGlobalParamCount  // = 20
+    kGlobalParamCount  // = 21
 };
 
 // Per-track parameter offsets (0-16)
