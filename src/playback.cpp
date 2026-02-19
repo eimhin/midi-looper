@@ -22,6 +22,7 @@ void handleTransportStart(MidiLooperAlgorithm* alg) {
         ts->lastStep = 1;
         ts->brownianPos = 1;
         ts->shufflePos = 1;
+        ts->octavePlayCount = 0;
 
         for (int s = 0; s < MAX_STEPS; s++) {
             ts->shuffleOrder[s] = (uint8_t)(s + 1);
@@ -218,38 +219,76 @@ static void handlePanicOnWrap(MidiLooperAlgorithm* alg) {
 }
 
 // ============================================================================
+// OCTAVE JUMP
+// ============================================================================
+
+// Calculate pitch shift (in semitones) for octave jump feature
+// Called once per step trigger — all notes in the step get the same shift
+static int calculateOctaveJump(MidiLooperAlgorithm* alg, int track, TrackParams& tp) {
+    int octUp = tp.octUp();
+    int octDown = tp.octDown();
+
+    // Feature inactive when both ranges are 0
+    if (octUp == 0 && octDown == 0) return 0;
+
+    TrackState* ts = &alg->trackStates[track];
+    ts->octavePlayCount++;
+
+    // Bypass: every Nth note-play gets the bypass offset instead
+    int bypass = tp.octBypass();
+    if (bypass > 0 && (ts->octavePlayCount % bypass) == 0) {
+        return tp.octBypassOffset();
+    }
+
+    // Probability check
+    int prob = tp.octProb();
+    if (randFloat(alg->randState) * 100.0f < (float)prob) {
+        int octave = randRange(alg->randState, -octDown, octUp);
+        return octave * 12;
+    }
+
+    return 0;
+}
+
+// ============================================================================
 // NOTE EMISSION
 // ============================================================================
 
 // Play or schedule a single note
 static void emitNote(MidiLooperAlgorithm* alg, int track, NoteEvent* ev,
-                     int velOffset, int humanize, int outCh, uint32_t where) {
+                     int velOffset, int humanize, int outCh, uint32_t where,
+                     int noteShift) {
     TrackState* ts = &alg->trackStates[track];
+    int actualNote = clamp((int)ev->note + noteShift, 0, 127);
     int velocity = clamp((int)ev->velocity + velOffset, 0, 127);
     int delay = (humanize > 0) ? randRange(alg->randState, 0, humanize) : 0;
 
     if (delay == 0) {
-        NT_sendMidi3ByteMessage(where, withChannel(kMidiNoteOn, outCh), ev->note, (uint8_t)velocity);
-        ts->playing[ev->note].active = true;
-        ts->playing[ev->note].remaining = ev->duration;
-        ts->activeNotes[ev->note] = (uint8_t)velocity;
+        NT_sendMidi3ByteMessage(where, withChannel(kMidiNoteOn, outCh), (uint8_t)actualNote, (uint8_t)velocity);
+        ts->playing[actualNote].active = true;
+        ts->playing[actualNote].remaining = ev->duration;
+        ts->activeNotes[actualNote] = (uint8_t)velocity;
         ts->activeVel = (uint8_t)velocity;
     } else {
-        scheduleDelayedNote(alg, ev->note, (uint8_t)velocity, (uint8_t)track,
+        scheduleDelayedNote(alg, (uint8_t)actualNote, (uint8_t)velocity, (uint8_t)track,
                            (uint8_t)outCh, ev->duration, (uint16_t)delay, where);
     }
 }
 
 // Play all events for the selected step on a track
 static void playTrackEvents(MidiLooperAlgorithm* alg, int track, int finalStep,
-                            int velOffset, int humanize, int outCh, uint32_t where) {
+                            TrackParams& tp, int velOffset, int humanize,
+                            int outCh, uint32_t where) {
     int stepIdx = finalStep - 1;
     if (stepIdx < 0 || stepIdx >= MAX_STEPS) return;
 
     StepEvents* evs = &alg->trackStates[track].data.steps[stepIdx];
+    if (evs->count == 0) return;
+
+    int noteShift = calculateOctaveJump(alg, track, tp);
 
     for (int e = 0; e < evs->count; e++) {
-        emitNote(alg, track, &evs->events[e], velOffset, humanize, outCh, where);
+        emitNote(alg, track, &evs->events[e], velOffset, humanize, outCh, where, noteShift);
     }
 }
 
@@ -330,6 +369,6 @@ void processTrack(MidiLooperAlgorithm* alg, int track, bool panicOnWrap) {
 
     // Emit notes for the calculated step(s)
     if (enabled) {
-        playTrackEvents(alg, track, finalStep, tp.velocity(), tp.humanize(), outCh, where);
+        playTrackEvents(alg, track, finalStep, tp, tp.velocity(), tp.humanize(), outCh, where);
     }
 }

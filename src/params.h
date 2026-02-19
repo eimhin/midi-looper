@@ -31,7 +31,7 @@ static const char* const genModeStrings[] = {"New", "Reorder", "Re-pitch", "Inve
 // PARAMETER DEFINITIONS
 // ============================================================================
 
-// Track parameter macro - generates 18 parameters per track
+// Track parameter macro - generates 23 parameters per track
 // DEF_ENABLED: default for Enabled (1 for track 1, 0 for others)
 // DEF_CHANNEL: default MIDI channel (1-4 for tracks 1-4)
 // clang-format off
@@ -53,10 +53,15 @@ static const char* const genModeStrings[] = {"New", "Reorder", "Re-pitch", "Inve
     {.name = "Pedal", .min = 0, .max = 100, .def = 0, .unit = kNT_unitPercent, .scaling = 0, .enumStrings = NULL}, \
     {.name = "Pedal Step", .min = 1, .max = MAX_STEPS, .def = 1, .unit = kNT_unitNone, .scaling = 0, .enumStrings = NULL}, \
     {.name = "No Repeat", .min = 0, .max = 1, .def = 0, .unit = kNT_unitEnum, .scaling = 0, .enumStrings = noYesStrings}, \
-    {.name = "Step Mask", .min = 0, .max = 7, .def = 0, .unit = kNT_unitEnum, .scaling = 0, .enumStrings = stepMaskStrings},
+    {.name = "Step Mask", .min = 0, .max = 7, .def = 0, .unit = kNT_unitEnum, .scaling = 0, .enumStrings = stepMaskStrings}, \
+    {.name = "Oct Up", .min = 0, .max = 4, .def = 0, .unit = kNT_unitNone, .scaling = 0, .enumStrings = NULL}, \
+    {.name = "Oct Down", .min = 0, .max = 4, .def = 0, .unit = kNT_unitNone, .scaling = 0, .enumStrings = NULL}, \
+    {.name = "Oct Prob", .min = 0, .max = 100, .def = 0, .unit = kNT_unitPercent, .scaling = 0, .enumStrings = NULL}, \
+    {.name = "Oct Bypass", .min = 0, .max = 64, .def = 0, .unit = kNT_unitNone, .scaling = 0, .enumStrings = NULL}, \
+    {.name = "Bypass Offset", .min = -24, .max = 24, .def = 0, .unit = kNT_unitNone, .scaling = 0, .enumStrings = NULL},
 // clang-format on
 
-// Parameter definitions (92 total)
+// Parameter definitions (113 total)
 static const _NT_parameter parameters[] = {
     // Routing parameters (0-1)
     NT_PARAMETER_CV_INPUT("Run", 0, 1)   // default bus 1, 0 = none allowed
@@ -85,7 +90,7 @@ static const _NT_parameter parameters[] = {
     {.name = "Ties", .min = 0, .max = 100, .def = 20, .unit = kNT_unitPercent, .scaling = 0, .enumStrings = NULL},
     {.name = "Gate Rand", .min = 0, .max = 100, .def = 0, .unit = kNT_unitPercent, .scaling = 0, .enumStrings = NULL},
 
-    // Track parameters (21-92) - 18 params per track
+    // Track parameters (21-112) - 23 params per track
     TRACK_PARAMS(1, 2) // Track 1: enabled by default, channel 2
     TRACK_PARAMS(0, 3) // Track 2: disabled by default, channel 3
     TRACK_PARAMS(0, 4) // Track 3: disabled by default, channel 4

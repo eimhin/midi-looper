@@ -106,6 +106,7 @@ _NT_algorithm* construct(const _NT_algorithmMemoryPtrs& ptrs, const _NT_algorith
         ts->brownianPos = 1;
         ts->shufflePos = 1;
         ts->activeVel = 0;
+        ts->octavePlayCount = 0;
         ts->lastEnabled = (t == 0) ? 1 : 0;
 
         // Initialize cache as dirty

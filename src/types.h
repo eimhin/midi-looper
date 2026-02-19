@@ -191,7 +191,7 @@ enum {
     kGlobalParamCount  // = 21
 };
 
-// Per-track parameter offsets (0-16)
+// Per-track parameter offsets (0-22)
 enum {
     kTrackEnabled = 0,
     kTrackLength,
@@ -211,8 +211,13 @@ enum {
     kTrackPedalStep,
     kTrackNoRepeat,
     kTrackStepMask,
+    kTrackOctUp,
+    kTrackOctDown,
+    kTrackOctProb,
+    kTrackOctBypass,
+    kTrackOctBypassOffset,
 
-    kTrackParamCount  // = 17
+    kTrackParamCount  // = 23
 };
 
 // Validate parameter layout matches config constants
@@ -285,6 +290,13 @@ struct TrackParams {
     // Binary modifiers
     int noRepeat() const { return raw(kTrackNoRepeat); }
     int stepMask() const { return raw(kTrackStepMask); }
+
+    // Octave jump
+    int octUp() const { return raw(kTrackOctUp); }
+    int octDown() const { return raw(kTrackOctDown); }
+    int octProb() const { return raw(kTrackOctProb); }
+    int octBypass() const { return raw(kTrackOctBypass); }
+    int octBypassOffset() const { return raw(kTrackOctBypassOffset); }
 };
 
 // ============================================================================
@@ -372,6 +384,7 @@ struct TrackState {
     uint8_t brownianPos;    // Brownian walk position
     uint8_t shufflePos;     // Position in shuffle order
     uint8_t activeVel;      // Highest active velocity (for UI)
+    uint16_t octavePlayCount; // Octave jump note-play counter
 
     // Parameter change detection
     int16_t lastEnabled;
