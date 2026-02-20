@@ -6,6 +6,7 @@
 #include "modifiers.h"
 #include "recording.h"
 #include "random.h"
+#include "scales.h"
 
 // ============================================================================
 // TRANSPORT CONTROL
@@ -260,6 +261,9 @@ static void emitNote(MidiLooperAlgorithm* alg, int track, NoteEvent* ev,
                      int noteShift) {
     TrackState* ts = &alg->trackStates[track];
     int actualNote = clamp((int)ev->note + noteShift, 0, 127);
+    int scaleRoot = alg->v[kParamScaleRoot];
+    int scaleType = alg->v[kParamScaleType];
+    actualNote = quantizeToScale((uint8_t)actualNote, scaleRoot, scaleType);
     int velocity = clamp((int)ev->velocity + velOffset, 0, 127);
     int delay = (humanize > 0) ? randRange(alg->randState, 0, humanize) : 0;
 
