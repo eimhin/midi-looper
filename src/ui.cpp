@@ -111,12 +111,9 @@ bool drawUI(MidiLooperAlgorithm* alg) {
         int len = tp.length();
         bool trackEnabled = tp.enabled();
 
-        int divStep = 1;
+        int rawStep = 1;
         if (trackEnabled) {
-            int loopLen;
-            int quantize = getCachedQuantize(v, t, &alg->trackStates[t].cache, loopLen);
-            int rawStep = clampParam(alg->trackStates[t].step, 1, len);
-            divStep = ((rawStep - 1) / quantize) + 1;
+            rawStep = clampParam(alg->trackStates[t].step, 1, len);
         }
 
         int boxFill = trackEnabled ? UI_BRIGHTNESS_DIM : 0;
@@ -139,15 +136,11 @@ bool drawUI(MidiLooperAlgorithm* alg) {
         label[3] = '\0';
         NT_drawText(x, UI_TRACK_TEXT_Y, label, textBrightness, kNT_textLeft, kNT_textNormal);
 
-        // Step position
-        char stepStr[8];
-        NT_intToString(stepStr, divStep);
-        NT_drawText(x + 20, UI_TRACK_TEXT_Y, stepStr, textBrightness, kNT_textLeft, kNT_textNormal);
-
-        // Length
-        char lenStr[8];
-        int lenChars = NT_intToString(lenStr, len);
-        NT_drawText(x + UI_TRACK_BOX_WIDTH - 2 - lenChars * UI_CHAR_WIDTH, UI_TRACK_TEXT_Y, lenStr, textBrightness, kNT_textLeft, kNT_textNormal);
+        // Step position playhead line
+        if (trackEnabled && len > 1 && transportIsRunning(dtc->transportState)) {
+            int lineX = x + (rawStep - 1) * (UI_TRACK_BOX_WIDTH - 2) / (len - 1);
+            NT_drawShapeI(kNT_line, lineX, UI_TRACK_BOX_TOP + 1, lineX, UI_TRACK_BOX_BOTTOM - 1, UI_BRIGHTNESS_MAX);
+        }
     }
 
     return false;  // Show standard parameter line at top
