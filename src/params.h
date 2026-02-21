@@ -31,14 +31,13 @@ static const char* const genModeStrings[] = {"New", "Reorder", "Re-pitch", "Inve
 // PARAMETER DEFINITIONS
 // ============================================================================
 
-// Track parameter macro - generates 23 parameters per track
+// Track parameter macro - generates 22 parameters per track
 // DEF_ENABLED: default for Enabled (1 for track 1, 0 for others)
 // DEF_CHANNEL: default MIDI channel (1-4 for tracks 1-4)
 // clang-format off
 #define TRACK_PARAMS(DEF_ENABLED, DEF_CHANNEL) \
     {.name = "Enabled", .min = 0, .max = 1, .def = DEF_ENABLED, .unit = kNT_unitEnum, .scaling = 0, .enumStrings = noYesStrings}, \
     {.name = "Length", .min = 1, .max = MAX_STEPS, .def = 16, .unit = kNT_unitNone, .scaling = 0, .enumStrings = NULL}, \
-    {.name = "Division", .min = 0, .max = 4, .def = 0, .unit = kNT_unitEnum, .scaling = 0, .enumStrings = divisionStrings}, \
     {.name = "Direction", .min = 0, .max = 11, .def = 0, .unit = kNT_unitEnum, .scaling = 0, .enumStrings = directionStrings}, \
     {.name = "Stride Size", .min = 2, .max = 16, .def = 2, .unit = kNT_unitNone, .scaling = 0, .enumStrings = NULL}, \
     {.name = "Velocity", .min = -64, .max = 64, .def = 0, .unit = kNT_unitNone, .scaling = 0, .enumStrings = NULL}, \
@@ -70,6 +69,7 @@ static const _NT_parameter parameters[] = {
     // Global parameters (2-10)
     {.name = "Record", .min = 0, .max = 1, .def = 0, .unit = kNT_unitEnum, .scaling = 0, .enumStrings = recordStrings},
     {.name = "Rec Track", .min = 0, .max = 3, .def = 0, .unit = kNT_unitEnum, .scaling = 0, .enumStrings = recTrackStrings},
+    {.name = "Division", .min = 0, .max = 4, .def = 0, .unit = kNT_unitEnum, .scaling = 0, .enumStrings = divisionStrings},
     {.name = "Rec Mode", .min = 0, .max = 2, .def = 0, .unit = kNT_unitEnum, .scaling = 0, .enumStrings = recModeStrings},
     {.name = "Rec Snap", .min = 50, .max = 100, .def = 75, .unit = kNT_unitPercent, .scaling = 0, .enumStrings = NULL},
     {.name = "MIDI In Ch", .min = 0, .max = 16, .def = 1, .unit = kNT_unitNone, .scaling = 0, .enumStrings = NULL},
@@ -90,7 +90,7 @@ static const _NT_parameter parameters[] = {
     {.name = "Ties", .min = 0, .max = 100, .def = 20, .unit = kNT_unitPercent, .scaling = 0, .enumStrings = NULL},
     {.name = "Gate Rand", .min = 0, .max = 100, .def = 0, .unit = kNT_unitPercent, .scaling = 0, .enumStrings = NULL},
 
-    // Track parameters (21-112) - 23 params per track
+    // Track parameters (22-109) - 22 params per track
     TRACK_PARAMS(1, 2) // Track 1: enabled by default, channel 2
     TRACK_PARAMS(0, 3) // Track 2: disabled by default, channel 3
     TRACK_PARAMS(0, 4) // Track 3: disabled by default, channel 4
@@ -107,7 +107,7 @@ static const _NT_parameter parameters[] = {
 static const uint8_t pageRouting[] = {kParamRunInput, kParamClockInput};
 
 // Page 1: Global (Recording)
-static const uint8_t pageGlobal[] = {kParamRecord, kParamRecTrack, kParamRecMode, kParamRecSnap, kParamClearTrack, kParamClearAll};
+static const uint8_t pageGlobal[] = {kParamRecord, kParamRecTrack, kParamRecDivision, kParamRecMode, kParamRecSnap, kParamClearTrack, kParamClearAll};
 
 // Page 2: MIDI Config
 static const uint8_t pageMidiConfig[] = {kParamMidiInCh, kParamPanicOnWrap, kParamScaleRoot, kParamScaleType};

@@ -170,6 +170,7 @@ enum {
     kParamClockInput,      // CV input bus selector for clock/trigger
     kParamRecord,
     kParamRecTrack,
+    kParamRecDivision,
     kParamRecMode,
     kParamRecSnap,
     kParamMidiInCh,
@@ -188,14 +189,13 @@ enum {
     kParamGenTies,
     kParamGenGateRand,
 
-    kGlobalParamCount  // = 21
+    kGlobalParamCount  // = 22
 };
 
-// Per-track parameter offsets (0-22)
+// Per-track parameter offsets (0-21)
 enum {
     kTrackEnabled = 0,
     kTrackLength,
-    kTrackDivision,
     kTrackDirection,
     kTrackStrideSize,
     kTrackVelocity,
@@ -217,7 +217,7 @@ enum {
     kTrackOctBypass,
     kTrackOctBypassOffset,
 
-    kTrackParamCount  // = 23
+    kTrackParamCount  // = 22
 };
 
 // Validate parameter layout matches config constants
@@ -264,7 +264,6 @@ struct TrackParams {
     // Basic track settings
     bool enabled() const { return raw(kTrackEnabled) == 1; }
     int length() const { return clampParam(raw(kTrackLength), 1, MAX_STEPS); }
-    int division() const { return clampParam(raw(kTrackDivision), 0, 4); }
     int direction() const { return raw(kTrackDirection); }
     int strideSize() const { return raw(kTrackStrideSize); }
 

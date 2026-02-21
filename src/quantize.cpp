@@ -15,7 +15,8 @@ int findValidQuantize(int loopLen, int targetQuantize) {
 int getEffectiveQuantize(const int16_t* v, int track, int& outLoopLen) {
     TrackParams tp = TrackParams::fromAlgorithm(v, track);
     int loopLen = tp.length();
-    int targetQuantize = QUANTIZE_VALUES[tp.division()];
+    int divIdx = clampParam(v[kParamRecDivision], 0, 4);
+    int targetQuantize = QUANTIZE_VALUES[divIdx];
     outLoopLen = loopLen;
     return findValidQuantize(loopLen, targetQuantize);
 }

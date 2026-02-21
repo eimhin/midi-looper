@@ -72,21 +72,27 @@ bool drawUI(MidiLooperAlgorithm* alg) {
         }
     }
 
-    // Division step squares (only if recording track is enabled)
-    TrackParams recTp = TrackParams::fromAlgorithm(v, recTrack);
-    if (recTp.enabled()) {
-        int recLen = recTp.length();
-        int loopLen;
-        int recQuantize = getCachedQuantize(v, recTrack, &alg->trackStates[recTrack].cache, loopLen);
-        int numDivSteps = (recLen + recQuantize - 1) / recQuantize;
-        int recRawStep = clampParam(alg->trackStates[recTrack].step, 1, recLen);
-        int currentDivStep = (dtc->stepRecPos > 0) ? dtc->stepRecPos : ((recRawStep - 1) / recQuantize) + 1;
-        int maxSquares = (numDivSteps < 16) ? numDivSteps : 16;
-        int displayStep = ((currentDivStep - 1) % maxSquares) + 1;
+    // Step recording position number (to the right of play/record icons)
+    if (dtc->recordState == REC_STEP && dtc->stepRecPos > 0) {
+        char buf[8];
+        NT_intToString(buf, dtc->stepRecPos);
+        NT_drawText(UI_REC_CENTER_X + UI_REC_RADIUS + 3, UI_VEL_BAR_TOP + 1, buf, UI_BRIGHTNESS_MAX, kNT_textLeft, kNT_textNormal);
+    }
 
-        for (int i = 1; i <= maxSquares; i++) {
-            int sqX = UI_LEFT_MARGIN + (i - 1) * UI_STEP_SPACING;
-            if (i == displayStep) {
+    // 4-beat metronome indicator
+    {
+        int activeBeat = -1; // -1 means no beat highlighted
+        if (transportIsRunning(dtc->transportState)) {
+            int loopLen;
+            int recQuantize = getCachedQuantize(v, recTrack, &alg->trackStates[recTrack].cache, loopLen);
+            if (recQuantize > 0) {
+                activeBeat = ((alg->trackStates[recTrack].clockCount - 1) / recQuantize) % 4;
+            }
+        }
+
+        for (int i = 0; i < 4; i++) {
+            int sqX = UI_LEFT_MARGIN + i * UI_STEP_SPACING;
+            if (i == activeBeat) {
                 NT_drawShapeI(kNT_rectangle, sqX, UI_STEP_Y_TOP, sqX + UI_STEP_WIDTH, UI_STEP_Y_BOTTOM, UI_BRIGHTNESS_MAX);
             } else {
                 NT_drawShapeI(kNT_box, sqX, UI_STEP_Y_TOP, sqX + UI_STEP_WIDTH, UI_STEP_Y_BOTTOM, UI_BRIGHTNESS_DIM);

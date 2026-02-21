@@ -170,14 +170,24 @@ _NT_algorithm* construct(const _NT_algorithmMemoryPtrs& ptrs, const _NT_algorith
 void parameterChanged(_NT_algorithm* self, int p) {
     MidiLooperAlgorithm* alg = (MidiLooperAlgorithm*)self;
 
+    // Global division change: invalidate all track caches
+    if (p == kParamRecDivision) {
+        for (int t = 0; t < alg->numTracks; t++) {
+            alg->trackStates[t].cache.invalidate();
+        }
+        if (alg->dtc->recordState == REC_STEP) {
+            alg->dtc->stepRecPos = 1;
+        }
+        return;
+    }
+
     // Check if this is a track parameter that affects cached values
     if (p >= kGlobalParamCount) {
         int track = (p - kGlobalParamCount) / PARAMS_PER_TRACK;
         int trackParam = (p - kGlobalParamCount) % PARAMS_PER_TRACK;
 
-        // Invalidate cache when length or division changes
-        // These are the only parameters that affect effectiveQuantize
-        if (trackParam == kTrackLength || trackParam == kTrackDivision) {
+        // Invalidate cache when length changes
+        if (trackParam == kTrackLength) {
             if (track >= 0 && track < alg->numTracks) {
                 alg->trackStates[track].cache.invalidate();
 

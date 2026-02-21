@@ -136,6 +136,18 @@ size: $(OUTPUT)
 	@echo "Size of $(OUTPUT):"
 	@$(SIZE_CMD)
 
+compile_commands.json: $(SOURCES) Makefile
+	@echo '[' > $@
+	@sep=""; \
+	for src in $(SOURCES); do \
+		printf '%s\n  { "directory": "%s", "file": "%s", "arguments": ["clang++", "-std=c++11", "-fPIC", "-Os", "-Wall", "-fno-rtti", "-fno-exceptions", "-I.", "-I./src", "-I./distingNT_API/include", "-c", "%s"] }' \
+			"$$sep" "$(CURDIR)" "$$src" "$$src" >> $@; \
+		sep=","; \
+	done
+	@echo '' >> $@
+	@echo ']' >> $@
+	@echo "Generated $@"
+
 clean:
 	rm -rf $(BUILD_DIR) $(OUTPUT_DIR)
 	@echo "Cleaned build and output directories"
@@ -164,4 +176,4 @@ help:
 	@echo "  1. make hardware"
 	@echo "  2. Copy plugins/$(PLUGIN_NAME).o to distingNT SD card"
 
-.PHONY: all hardware test both push check size clean help
+.PHONY: all hardware test both push check size clean help compile_commands.json
