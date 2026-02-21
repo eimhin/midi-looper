@@ -71,16 +71,6 @@ Probability-based transformations applied in this fixed order to the step chosen
 Deterministic filters applied after continuous modifiers:
 
 - **No Repeat**: Skip if the resulting step is the same as the previous one
-- **Step Mask**: Filter steps through a pattern:
-  - All (no masking)
-  - Odds (odd-numbered steps only)
-  - Evens (even-numbered steps only)
-  - 1st Half / 2nd Half
-  - Sparse (every 3rd step)
-  - Dense (skip every 4th step)
-  - Random (50% probability per step)
-
-If a step is masked, the next allowed step is used instead.
 
 ### Output
 

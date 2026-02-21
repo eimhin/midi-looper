@@ -51,7 +51,7 @@ static constexpr int MAX_DELAYED_NOTES = 64; // Humanization delay buffer size
 // PARAMETER LAYOUT
 // ============================================================================
 
-static constexpr int PARAMS_PER_TRACK = 31; // Parameters per track
+static constexpr int PARAMS_PER_TRACK = 30; // Parameters per track
 static constexpr int GLOBAL_PARAMS = 23;    // Global parameters (Run Input, Clock Input, Record, Generate, Fill, etc.)
 
 // Derived constants (do not modify directly)
@@ -65,13 +65,6 @@ static constexpr int MAX_PAGES = 4 + MAX_TRACKS; // Routing + Global + MIDI + Ge
 // Brownian motion parameters (step delta range)
 static constexpr int BROWNIAN_DELTA_MIN = -2;
 static constexpr int BROWNIAN_DELTA_MAX = 2;
-
-// Step mask divisors
-static constexpr int MASK_SPARSE_DIVISOR = 3; // Every 3rd step (step % 3 == 1)
-static constexpr int MASK_DENSE_DIVISOR = 4;  // Skip every 4th step (step % 4 != 0)
-
-// Random mask probability threshold (0.0 to 1.0)
-static constexpr float MASK_RANDOM_THRESHOLD = 0.5f;
 
 // ============================================================================
 // COMPILE-TIME VALIDATION
@@ -88,6 +81,3 @@ static_assert(BROWNIAN_DELTA_MIN < BROWNIAN_DELTA_MAX, "Brownian delta range is 
 static_assert(BROWNIAN_DELTA_MIN >= -MAX_STEPS && BROWNIAN_DELTA_MAX <= MAX_STEPS,
               "Brownian delta range exceeds step bounds");
 
-// Ensure mask divisors are valid (> 0 to avoid division by zero)
-static_assert(MASK_SPARSE_DIVISOR > 0, "MASK_SPARSE_DIVISOR must be positive");
-static_assert(MASK_DENSE_DIVISOR > 0, "MASK_DENSE_DIVISOR must be positive");

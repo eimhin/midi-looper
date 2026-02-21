@@ -376,7 +376,6 @@ static void playTrackEvents(MidiLooperAlgorithm* alg, int track, int finalStep,
 // 3. BINARY MODIFIERS (applyBinaryModifiers)
 //    - Deterministic accept/reject filters
 //    - No-Repeat: skips if same as previous cycle's final step
-//    - Step Mask: finds next allowed step if current is masked
 //    - Output: final step guaranteed to pass all filters
 //
 // IMPORTANT: This ordering ensures:

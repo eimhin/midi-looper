@@ -55,38 +55,12 @@ int applyModifiers(MidiLooperAlgorithm* alg, int track, int baseStep, int loopLe
 // BINARY MODIFIERS
 // ============================================================================
 
-static bool isStepAllowed(int step, int loopLen, int maskPattern, uint32_t& randState) {
-    switch (maskPattern) {
-        case MASK_ALL: return true;
-        case MASK_ODDS: return (step % 2) == 1;
-        case MASK_EVENS: return (step % 2) == 0;
-        case MASK_FIRST_HALF: return step <= (loopLen + 1) / 2;
-        case MASK_SECOND_HALF: return step > loopLen / 2;
-        case MASK_SPARSE: return (step % MASK_SPARSE_DIVISOR) == 1;
-        case MASK_DENSE: return (step % MASK_DENSE_DIVISOR) != 0;
-        case MASK_RANDOM: return randFloat(randState) > MASK_RANDOM_THRESHOLD;
-        default: return true;
-    }
-}
-
 int applyBinaryModifiers(MidiLooperAlgorithm* alg, int track, int step, int prevStep, int loopLen) {
     TrackParams tp = TrackParams::fromAlgorithm(alg->v, track);
 
     // No Repeat: skip if same as previous
     if (tp.noRepeat() == 1 && step == prevStep && loopLen > 1) {
         step = (step % loopLen) + 1;
-    }
-
-    // Step Mask: find next allowed step if current is masked
-    int maskPattern = tp.stepMask();
-    if (!isStepAllowed(step, loopLen, maskPattern, alg->randState)) {
-        for (int offset = 1; offset < loopLen; offset++) {
-            int testStep = ((step - 1 + offset) % loopLen) + 1;
-            if (isStepAllowed(testStep, loopLen, maskPattern, alg->randState)) {
-                step = testStep;
-                break;
-            }
-        }
     }
 
     return step;

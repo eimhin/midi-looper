@@ -21,7 +21,6 @@ static const char* const noYesStrings[] = {"No", "Yes", NULL};
 static const char* const divisionStrings[] = {"1", "2", "4", "8", "16", NULL};
 static const char* const directionStrings[] = {"Forward",  "Reverse", "Pendulum", "Ping-Pong", "Stride",  "Odd/Even", "Hopscotch",
                                                "Converge", "Diverge", "Brownian", "Random",    "Shuffle", NULL};
-static const char* const stepMaskStrings[] = {"All", "Odds", "Evens", "1st Half", "2nd Half", "Sparse", "Dense", "Random", NULL};
 static const char* const scaleRootStrings[] = {"C", "C#", "D", "Eb", "E", "F", "F#", "G", "Ab", "A", "Bb", "B", NULL};
 static const char* const scaleTypeStrings[] = {"Off",     "Ionian",   "Dorian",   "Phrygian",  "Lydian",    "Mixolydian", "Aeolian",
                                                "Locrian", "Harm Min", "Melo Min", "Maj Penta", "Min Penta", NULL};
@@ -51,7 +50,7 @@ static const char* const trigCondStrings[] = {
 // PARAMETER DEFINITIONS
 // ============================================================================
 
-// Track parameter macro - generates 31 parameters per track
+// Track parameter macro - generates 30 parameters per track
 // DEF_ENABLED: default for Enabled (1 for track 1, 0 for others)
 // DEF_CHANNEL: default MIDI channel (1-4 for tracks 1-4)
 // clang-format off
@@ -73,7 +72,6 @@ static const char* const trigCondStrings[] = {
     {.name = "Pedal", .min = 0, .max = 100, .def = 0, .unit = kNT_unitPercent, .scaling = 0, .enumStrings = NULL}, \
     {.name = "Pedal Step", .min = 1, .max = MAX_STEPS, .def = 1, .unit = kNT_unitNone, .scaling = 0, .enumStrings = NULL}, \
     {.name = "No Repeat", .min = 0, .max = 1, .def = 0, .unit = kNT_unitEnum, .scaling = 0, .enumStrings = noYesStrings}, \
-    {.name = "Step Mask", .min = 0, .max = 7, .def = 0, .unit = kNT_unitEnum, .scaling = 0, .enumStrings = stepMaskStrings}, \
     {.name = "Oct Up", .min = 0, .max = 4, .def = 0, .unit = kNT_unitNone, .scaling = 0, .enumStrings = NULL}, \
     {.name = "Oct Down", .min = 0, .max = 4, .def = 0, .unit = kNT_unitNone, .scaling = 0, .enumStrings = NULL}, \
     {.name = "Oct Prob", .min = 0, .max = 100, .def = 0, .unit = kNT_unitPercent, .scaling = 0, .enumStrings = NULL}, \

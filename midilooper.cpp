@@ -13,7 +13,7 @@
  * - State persistence (track data survives preset save/load)
  * - 12 playback directions per track
  * - Continuous modifiers (Stability, Motion, Randomness, Gravity, Pedal)
- * - Binary modifiers (No Repeat, Step Mask)
+ * - Binary modifiers (No Repeat)
  *
  * Inputs:
  * - In1: Run gate (rising edge resets and starts; falling edge stops)

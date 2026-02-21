@@ -105,16 +105,6 @@ static constexpr int DIR_BROWNIAN = 9;
 static constexpr int DIR_RANDOM = 10;
 static constexpr int DIR_SHUFFLE = 11;
 
-// Step mask patterns (0-indexed to match parameter values)
-static constexpr int MASK_ALL = 0;
-static constexpr int MASK_ODDS = 1;
-static constexpr int MASK_EVENS = 2;
-static constexpr int MASK_FIRST_HALF = 3;
-static constexpr int MASK_SECOND_HALF = 4;
-static constexpr int MASK_SPARSE = 5;
-static constexpr int MASK_DENSE = 6;
-static constexpr int MASK_RANDOM = 7;
-
 // Generate mode constants
 static constexpr int GEN_MODE_NEW = 0;
 static constexpr int GEN_MODE_REORDER = 1;
@@ -215,7 +205,6 @@ enum {
     kTrackPedal,
     kTrackPedalStep,
     kTrackNoRepeat,
-    kTrackStepMask,
     kTrackOctUp,
     kTrackOctDown,
     kTrackOctProb,
@@ -230,7 +219,7 @@ enum {
     kTrackCondB,
     kTrackProbB,
 
-    kTrackParamCount  // = 31
+    kTrackParamCount  // = 30
 };
 
 // Validate parameter layout matches config constants
@@ -301,7 +290,6 @@ struct TrackParams {
 
     // Binary modifiers
     int noRepeat() const { return raw(kTrackNoRepeat); }
-    int stepMask() const { return raw(kTrackStepMask); }
 
     // Octave jump
     int octUp() const { return raw(kTrackOctUp); }
