@@ -9,6 +9,58 @@
 #include "scales.h"
 
 // ============================================================================
+// TRIG CONDITION EVALUATION
+// ============================================================================
+
+static bool evaluateTrigCondition(int cond, uint16_t loopCount, bool fillActive) {
+    // Lookup tables for A:B ratio conditions (periods 2-8)
+    // Maps ratio index (0-34) to period and position
+    static const uint8_t ratioPeriod[] = {
+        2, 2,
+        3, 3, 3,
+        4, 4, 4, 4,
+        5, 5, 5, 5, 5,
+        6, 6, 6, 6, 6, 6,
+        7, 7, 7, 7, 7, 7, 7,
+        8, 8, 8, 8, 8, 8, 8, 8
+    };
+    static const uint8_t ratioPos[] = {
+        0, 1,
+        0, 1, 2,
+        0, 1, 2, 3,
+        0, 1, 2, 3, 4,
+        0, 1, 2, 3, 4, 5,
+        0, 1, 2, 3, 4, 5, 6,
+        0, 1, 2, 3, 4, 5, 6, 7
+    };
+    static constexpr int NUM_RATIOS = 35;
+
+    if (cond == 0) return true;  // Always
+
+    // Positive A:B ratios (indices 1-35)
+    if (cond <= NUM_RATIOS) {
+        int idx = cond - 1;
+        return (loopCount % ratioPeriod[idx]) == ratioPos[idx];
+    }
+
+    // NOT A:B ratios (indices 36-70)
+    if (cond <= NUM_RATIOS * 2) {
+        int idx = cond - NUM_RATIOS - 1;
+        return (loopCount % ratioPeriod[idx]) != ratioPos[idx];
+    }
+
+    // Special conditions (71-75)
+    switch (cond) {
+    case 71: return loopCount == 0;   // First
+    case 72: return loopCount != 0;   // !First
+    case 73: return fillActive;       // Fill
+    case 74: return !fillActive;      // !Fill
+    case COND_FIXED: return true;     // Fixed (semantics handled in processTrack)
+    default: return true;
+    }
+}
+
+// ============================================================================
 // TRANSPORT CONTROL
 // ============================================================================
 
@@ -20,6 +72,8 @@ void handleTransportStart(MidiLooperAlgorithm* alg) {
         TrackState* ts = &alg->trackStates[t];
         ts->step = 0;
         ts->clockCount = 0;
+        ts->divCounter = 0;
+        ts->loopCount = 0;
         ts->lastStep = 1;
         ts->brownianPos = 1;
         ts->shufflePos = 1;
@@ -59,6 +113,8 @@ void handleTransportStop(MidiLooperAlgorithm* alg) {
         TrackState* ts = &alg->trackStates[t];
         ts->step = 0;
         ts->clockCount = 0;
+        ts->divCounter = 0;
+        ts->loopCount = 0;
 
         for (int n = 0; n < 128; n++) {
             ts->activeNotes[n] = 0;
@@ -282,14 +338,14 @@ static void emitNote(MidiLooperAlgorithm* alg, int track, NoteEvent* ev,
 // Play all events for the selected step on a track
 static void playTrackEvents(MidiLooperAlgorithm* alg, int track, int finalStep,
                             TrackParams& tp, int velOffset, int humanize,
-                            int outCh, uint32_t where) {
+                            int outCh, uint32_t where, bool fixed) {
     int stepIdx = finalStep - 1;
     if (stepIdx < 0 || stepIdx >= MAX_STEPS) return;
 
     StepEvents* evs = &alg->trackStates[track].data.steps[stepIdx];
     if (evs->count == 0) return;
 
-    int noteShift = calculateOctaveJump(alg, track, tp);
+    int noteShift = fixed ? 0 : calculateOctaveJump(alg, track, tp);
 
     for (int e = 0; e < evs->count; e++) {
         emitNote(alg, track, &evs->events[e], velOffset, humanize, outCh, where, noteShift);
@@ -367,12 +423,46 @@ void processTrack(MidiLooperAlgorithm* alg, int track, bool panicOnWrap) {
 
     // Check for loop wrap and trigger panic if configured
     bool wrapped = detectWrap(prevPos, finalStep, loopLen, tp.direction(), ts->clockCount);
+    if (wrapped && ts->clockCount > 1) {
+        ts->loopCount++;
+    }
     if (wrapped && panicOnWrap) {
         handlePanicOnWrap(alg);
     }
 
-    // Emit notes for the calculated step(s)
+    // Emit notes for the calculated step(s), gated by trig conditions
     if (enabled) {
-        playTrackEvents(alg, track, finalStep, tp, tp.velocity(), tp.humanize(), outCh, where);
+        bool fillActive = (alg->v[kParamFill] == 1);
+
+        // Per-track condition gates the entire track
+        if (evaluateTrigCondition(tp.stepCond(), ts->loopCount, fillActive)) {
+            // Per-step conditions target specific steps
+            bool stepCondMet = true;
+            int condStepA = tp.condStepA();
+            int condStepB = tp.condStepB();
+            if (condStepA > 0 && finalStep == condStepA) {
+                stepCondMet = evaluateTrigCondition(tp.condA(), ts->loopCount, fillActive);
+            }
+            if (condStepB > 0 && finalStep == condStepB) {
+                stepCondMet = evaluateTrigCondition(tp.condB(), ts->loopCount, fillActive);
+            }
+
+            if (stepCondMet) {
+                // Determine if Fixed condition applies to this step
+                bool fixed = (tp.stepCond() == COND_FIXED);
+                if (condStepA > 0 && finalStep == condStepA && tp.condA() == COND_FIXED) fixed = true;
+                if (condStepB > 0 && finalStep == condStepB && tp.condB() == COND_FIXED) fixed = true;
+
+                // Step probability gate (bypassed by Fixed)
+                int prob = tp.stepProb();
+                if (condStepA > 0 && finalStep == condStepA) prob = tp.probA();
+                if (condStepB > 0 && finalStep == condStepB) prob = tp.probB();
+                if (fixed) prob = 100;
+
+                if (prob >= 100 || (int)(randFloat(alg->randState) * 100.0f) < prob) {
+                    playTrackEvents(alg, track, finalStep, tp, tp.velocity(), tp.humanize(), outCh, where, fixed);
+                }
+            }
+        }
     }
 }

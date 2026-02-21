@@ -26,18 +26,39 @@ static const char* const scaleRootStrings[] = {"C", "C#", "D", "Eb", "E", "F", "
 static const char* const scaleTypeStrings[] = {"Off",     "Ionian",   "Dorian",   "Phrygian",  "Lydian",    "Mixolydian", "Aeolian",
                                                "Locrian", "Harm Min", "Melo Min", "Maj Penta", "Min Penta", NULL};
 static const char* const genModeStrings[] = {"New", "Reorder", "Re-pitch", "Invert", NULL};
+// clang-format off
+static const char* const trigCondStrings[] = {
+    "Always",
+    "1:2", "2:2",
+    "1:3", "2:3", "3:3",
+    "1:4", "2:4", "3:4", "4:4",
+    "1:5", "2:5", "3:5", "4:5", "5:5",
+    "1:6", "2:6", "3:6", "4:6", "5:6", "6:6",
+    "1:7", "2:7", "3:7", "4:7", "5:7", "6:7", "7:7",
+    "1:8", "2:8", "3:8", "4:8", "5:8", "6:8", "7:8", "8:8",
+    "!1:2", "!2:2",
+    "!1:3", "!2:3", "!3:3",
+    "!1:4", "!2:4", "!3:4", "!4:4",
+    "!1:5", "!2:5", "!3:5", "!4:5", "!5:5",
+    "!1:6", "!2:6", "!3:6", "!4:6", "!5:6", "!6:6",
+    "!1:7", "!2:7", "!3:7", "!4:7", "!5:7", "!6:7", "!7:7",
+    "!1:8", "!2:8", "!3:8", "!4:8", "!5:8", "!6:8", "!7:8", "!8:8",
+    "First", "!First", "Fill", "!Fill", "Fixed", NULL
+};
+// clang-format on
 
 // ============================================================================
 // PARAMETER DEFINITIONS
 // ============================================================================
 
-// Track parameter macro - generates 22 parameters per track
+// Track parameter macro - generates 31 parameters per track
 // DEF_ENABLED: default for Enabled (1 for track 1, 0 for others)
 // DEF_CHANNEL: default MIDI channel (1-4 for tracks 1-4)
 // clang-format off
 #define TRACK_PARAMS(DEF_ENABLED, DEF_CHANNEL) \
     {.name = "Enabled", .min = 0, .max = 1, .def = DEF_ENABLED, .unit = kNT_unitEnum, .scaling = 0, .enumStrings = noYesStrings}, \
     {.name = "Length", .min = 1, .max = MAX_STEPS, .def = 16, .unit = kNT_unitNone, .scaling = 0, .enumStrings = NULL}, \
+    {.name = "Division", .min = 1, .max = 16, .def = 1, .unit = kNT_unitNone, .scaling = 0, .enumStrings = NULL}, \
     {.name = "Direction", .min = 0, .max = 11, .def = 0, .unit = kNT_unitEnum, .scaling = 0, .enumStrings = directionStrings}, \
     {.name = "Stride Size", .min = 2, .max = 16, .def = 2, .unit = kNT_unitNone, .scaling = 0, .enumStrings = NULL}, \
     {.name = "Velocity", .min = -64, .max = 64, .def = 0, .unit = kNT_unitNone, .scaling = 0, .enumStrings = NULL}, \
@@ -57,10 +78,18 @@ static const char* const genModeStrings[] = {"New", "Reorder", "Re-pitch", "Inve
     {.name = "Oct Down", .min = 0, .max = 4, .def = 0, .unit = kNT_unitNone, .scaling = 0, .enumStrings = NULL}, \
     {.name = "Oct Prob", .min = 0, .max = 100, .def = 0, .unit = kNT_unitPercent, .scaling = 0, .enumStrings = NULL}, \
     {.name = "Oct Bypass", .min = 0, .max = 64, .def = 0, .unit = kNT_unitNone, .scaling = 0, .enumStrings = NULL}, \
-    {.name = "Bypass Offset", .min = -24, .max = 24, .def = 0, .unit = kNT_unitNone, .scaling = 0, .enumStrings = NULL},
+    {.name = "Bypass Offset", .min = -24, .max = 24, .def = 0, .unit = kNT_unitNone, .scaling = 0, .enumStrings = NULL}, \
+    {.name = "Step Prob", .min = 0, .max = 100, .def = 100, .unit = kNT_unitPercent, .scaling = 0, .enumStrings = NULL}, \
+    {.name = "Step Cond", .min = 0, .max = 75, .def = 0, .unit = kNT_unitEnum, .scaling = 0, .enumStrings = trigCondStrings}, \
+    {.name = "Cond Stp A", .min = 0, .max = MAX_STEPS, .def = 0, .unit = kNT_unitNone, .scaling = 0, .enumStrings = NULL}, \
+    {.name = "Cond A", .min = 0, .max = 75, .def = 0, .unit = kNT_unitEnum, .scaling = 0, .enumStrings = trigCondStrings}, \
+    {.name = "Prob A", .min = 0, .max = 100, .def = 100, .unit = kNT_unitPercent, .scaling = 0, .enumStrings = NULL}, \
+    {.name = "Cond Stp B", .min = 0, .max = MAX_STEPS, .def = 0, .unit = kNT_unitNone, .scaling = 0, .enumStrings = NULL}, \
+    {.name = "Cond B", .min = 0, .max = 75, .def = 0, .unit = kNT_unitEnum, .scaling = 0, .enumStrings = trigCondStrings}, \
+    {.name = "Prob B", .min = 0, .max = 100, .def = 100, .unit = kNT_unitPercent, .scaling = 0, .enumStrings = NULL},
 // clang-format on
 
-// Parameter definitions (113 total)
+// Parameter definitions
 static const _NT_parameter parameters[] = {
     // Routing parameters (0-1)
     NT_PARAMETER_CV_INPUT("Run", 0, 1)   // default bus 1, 0 = none allowed
@@ -89,8 +118,9 @@ static const _NT_parameter parameters[] = {
     {.name = "Vel Var", .min = 0, .max = 100, .def = 20, .unit = kNT_unitPercent, .scaling = 0, .enumStrings = NULL},
     {.name = "Ties", .min = 0, .max = 100, .def = 20, .unit = kNT_unitPercent, .scaling = 0, .enumStrings = NULL},
     {.name = "Gate Rand", .min = 0, .max = 100, .def = 0, .unit = kNT_unitPercent, .scaling = 0, .enumStrings = NULL},
+    {.name = "Fill", .min = 0, .max = 1, .def = 0, .unit = kNT_unitEnum, .scaling = 0, .enumStrings = noYesStrings},
 
-    // Track parameters (22-109) - 22 params per track
+    // Track parameters - PARAMS_PER_TRACK per track
     TRACK_PARAMS(1, 2) // Track 1: enabled by default, channel 2
     TRACK_PARAMS(0, 3) // Track 2: disabled by default, channel 3
     TRACK_PARAMS(0, 4) // Track 3: disabled by default, channel 4
@@ -107,7 +137,7 @@ static const _NT_parameter parameters[] = {
 static const uint8_t pageRouting[] = {kParamRunInput, kParamClockInput};
 
 // Page 1: Global (Recording)
-static const uint8_t pageGlobal[] = {kParamRecord, kParamRecTrack, kParamRecDivision, kParamRecMode, kParamRecSnap, kParamClearTrack, kParamClearAll};
+static const uint8_t pageGlobal[] = {kParamRecord, kParamRecTrack, kParamRecDivision, kParamRecMode, kParamRecSnap, kParamClearTrack, kParamClearAll, kParamFill};
 
 // Page 2: MIDI Config
 static const uint8_t pageMidiConfig[] = {kParamMidiInCh, kParamPanicOnWrap, kParamScaleRoot, kParamScaleType};

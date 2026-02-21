@@ -88,6 +88,9 @@ static inline TransportState transportTransition_Stop(TransportState current) {
     return TRANSPORT_STOPPED;
 }
 
+// Trig condition constants
+static constexpr int COND_FIXED = 75;
+
 // Direction constants (0-indexed to match parameter values)
 static constexpr int DIR_FORWARD = 0;
 static constexpr int DIR_REVERSE = 1;
@@ -188,14 +191,16 @@ enum {
     kParamGenVelVar,
     kParamGenTies,
     kParamGenGateRand,
+    kParamFill,
 
-    kGlobalParamCount  // = 22
+    kGlobalParamCount  // = 23
 };
 
 // Per-track parameter offsets (0-21)
 enum {
     kTrackEnabled = 0,
     kTrackLength,
+    kTrackClockDiv,
     kTrackDirection,
     kTrackStrideSize,
     kTrackVelocity,
@@ -216,8 +221,16 @@ enum {
     kTrackOctProb,
     kTrackOctBypass,
     kTrackOctBypassOffset,
+    kTrackStepProb,
+    kTrackStepCond,
+    kTrackCondStepA,
+    kTrackCondA,
+    kTrackProbA,
+    kTrackCondStepB,
+    kTrackCondB,
+    kTrackProbB,
 
-    kTrackParamCount  // = 22
+    kTrackParamCount  // = 31
 };
 
 // Validate parameter layout matches config constants
@@ -296,6 +309,20 @@ struct TrackParams {
     int octProb() const { return raw(kTrackOctProb); }
     int octBypass() const { return raw(kTrackOctBypass); }
     int octBypassOffset() const { return raw(kTrackOctBypassOffset); }
+
+    // Step conditions
+    int stepProb() const { return raw(kTrackStepProb); }
+    int stepCond() const { return raw(kTrackStepCond); }
+    int condStepA() const { return raw(kTrackCondStepA); }
+    int condA() const { return raw(kTrackCondA); }
+    int probA() const { return raw(kTrackProbA); }
+    int condStepB() const { return raw(kTrackCondStepB); }
+    int condB() const { return raw(kTrackCondB); }
+    int probB() const { return raw(kTrackProbB); }
+
+    int clockDiv() const {
+        return clampParam(raw(kTrackClockDiv), 1, 16);
+    }
 };
 
 // ============================================================================
@@ -378,6 +405,8 @@ struct TrackState {
 
     // Playback state
     uint16_t clockCount;
+    uint16_t divCounter;    // Clock division counter
+    uint16_t loopCount;     // Loop iteration counter (for trig conditions)
     uint8_t step;           // Current step position
     uint8_t lastStep;       // Previous step (for no-repeat)
     uint8_t brownianPos;    // Brownian walk position

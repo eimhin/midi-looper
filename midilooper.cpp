@@ -101,6 +101,8 @@ _NT_algorithm* construct(const _NT_algorithmMemoryPtrs& ptrs, const _NT_algorith
 
         // Initialize playback state
         ts->clockCount = 0;
+        ts->divCounter = 0;
+        ts->loopCount = 0;
         ts->step = 0;
         ts->lastStep = 1;
         ts->brownianPos = 1;
@@ -372,9 +374,14 @@ void step(_NT_algorithm* self, float* busFrames, int numFramesBy4) {
 
         bool panicOnWrap = (v[kParamPanicOnWrap] == 1);
 
-        // Process each track
+        // Process each track (gated by per-track clock division)
         for (int t = 0; t < alg->numTracks; t++) {
-            processTrack(alg, t, panicOnWrap);
+            TrackState* ts = &alg->trackStates[t];
+            int clockDiv = TrackParams::fromAlgorithm(v, t).clockDiv();
+            if (++ts->divCounter >= (uint16_t)clockDiv) {
+                ts->divCounter = 0;
+                processTrack(alg, t, panicOnWrap);
+            }
         }
     }
 }
