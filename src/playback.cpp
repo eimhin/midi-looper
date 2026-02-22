@@ -282,25 +282,24 @@ static void handlePanicOnWrap(MidiLooperAlgorithm* alg) {
 // Calculate pitch shift (in semitones) for octave jump feature
 // Called once per step trigger — all notes in the step get the same shift
 static int calculateOctaveJump(MidiLooperAlgorithm* alg, int track, TrackParams& tp) {
-    int octUp = tp.octUp();
-    int octDown = tp.octDown();
+    int octMin = tp.octMin();
+    int octMax = tp.octMax();
 
     // Feature inactive when both ranges are 0
-    if (octUp == 0 && octDown == 0) return 0;
+    if (octMin == 0 && octMax == 0) return 0;
 
     TrackState* ts = &alg->trackStates[track];
     ts->octavePlayCount++;
 
-    // Bypass: every Nth note-play gets the bypass offset instead
+    // Bypass: every Nth note-play is unshifted
     int bypass = tp.octBypass();
-    if (bypass > 0 && (ts->octavePlayCount % bypass) == 0) {
-        return tp.octBypassOffset();
-    }
+    if (bypass > 0 && (ts->octavePlayCount % bypass) == 0)
+        return 0;
 
     // Probability check
     int prob = tp.octProb();
     if (randFloat(alg->randState) * 100.0f < (float)prob) {
-        int octave = randRange(alg->randState, -octDown, octUp);
+        int octave = randRange(alg->randState, octMin, octMax);
         return octave * 12;
     }
 

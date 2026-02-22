@@ -72,11 +72,10 @@ static const char* const trigCondStrings[] = {
     {.name = "Pedal", .min = 0, .max = 100, .def = 0, .unit = kNT_unitPercent, .scaling = 0, .enumStrings = NULL}, \
     {.name = "Pedal Step", .min = 1, .max = MAX_STEPS, .def = 1, .unit = kNT_unitNone, .scaling = 0, .enumStrings = NULL}, \
     {.name = "No Repeat", .min = 0, .max = 1, .def = 0, .unit = kNT_unitEnum, .scaling = 0, .enumStrings = noYesStrings}, \
-    {.name = "Oct Up", .min = 0, .max = 4, .def = 0, .unit = kNT_unitNone, .scaling = 0, .enumStrings = NULL}, \
-    {.name = "Oct Down", .min = 0, .max = 4, .def = 0, .unit = kNT_unitNone, .scaling = 0, .enumStrings = NULL}, \
+    {.name = "Oct Min", .min = -3, .max = 3, .def = 0, .unit = kNT_unitNone, .scaling = 0, .enumStrings = NULL}, \
+    {.name = "Oct Max", .min = -3, .max = 3, .def = 0, .unit = kNT_unitNone, .scaling = 0, .enumStrings = NULL}, \
     {.name = "Oct Prob", .min = 0, .max = 100, .def = 0, .unit = kNT_unitPercent, .scaling = 0, .enumStrings = NULL}, \
     {.name = "Oct Bypass", .min = 0, .max = 64, .def = 0, .unit = kNT_unitNone, .scaling = 0, .enumStrings = NULL}, \
-    {.name = "Bypass Offset", .min = -24, .max = 24, .def = 0, .unit = kNT_unitNone, .scaling = 0, .enumStrings = NULL}, \
     {.name = "Step Prob", .min = 0, .max = 100, .def = 100, .unit = kNT_unitPercent, .scaling = 0, .enumStrings = NULL}, \
     {.name = "Step Cond", .min = 0, .max = 75, .def = 0, .unit = kNT_unitEnum, .scaling = 0, .enumStrings = trigCondStrings}, \
     {.name = "Cond Stp A", .min = 0, .max = MAX_STEPS, .def = 0, .unit = kNT_unitNone, .scaling = 0, .enumStrings = NULL}, \

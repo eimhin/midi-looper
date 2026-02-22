@@ -205,11 +205,10 @@ enum {
     kTrackPedal,
     kTrackPedalStep,
     kTrackNoRepeat,
-    kTrackOctUp,
-    kTrackOctDown,
+    kTrackOctMin,
+    kTrackOctMax,
     kTrackOctProb,
     kTrackOctBypass,
-    kTrackOctBypassOffset,
     kTrackStepProb,
     kTrackStepCond,
     kTrackCondStepA,
@@ -219,7 +218,7 @@ enum {
     kTrackCondB,
     kTrackProbB,
 
-    kTrackParamCount  // = 30
+    kTrackParamCount  // = 29
 };
 
 // Validate parameter layout matches config constants
@@ -292,11 +291,10 @@ struct TrackParams {
     int noRepeat() const { return raw(kTrackNoRepeat); }
 
     // Octave jump
-    int octUp() const { return raw(kTrackOctUp); }
-    int octDown() const { return raw(kTrackOctDown); }
+    int octMin() const { return raw(kTrackOctMin); }
+    int octMax() const { return raw(kTrackOctMax); }
     int octProb() const { return raw(kTrackOctProb); }
     int octBypass() const { return raw(kTrackOctBypass); }
-    int octBypassOffset() const { return raw(kTrackOctBypassOffset); }
 
     // Step conditions
     int stepProb() const { return raw(kTrackStepProb); }
