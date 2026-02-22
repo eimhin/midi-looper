@@ -12,7 +12,7 @@
  * - Up to 8 polyphonic note events per step with duration tracking
  * - State persistence (track data survives preset save/load)
  * - 12 playback directions per track
- * - Continuous modifiers (Stability, Motion, Randomness, Gravity, Pedal)
+ * - Continuous modifiers (Stability, Motion, Randomness, Pedal)
  * - Binary modifiers (No Repeat)
  *
  * Inputs:

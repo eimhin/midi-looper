@@ -189,7 +189,7 @@ enum {
     kGlobalParamCount  // = 23
 };
 
-// Per-track parameter offsets (0-21)
+// Per-track parameter offsets (0-25)
 enum {
     kTrackEnabled = 0,
     kTrackLength,
@@ -202,8 +202,6 @@ enum {
     kTrackStability,
     kTrackMotion,
     kTrackRandomness,
-    kTrackGravity,
-    kTrackGravityAnchor,
     kTrackPedal,
     kTrackPedalStep,
     kTrackNoRepeat,
@@ -220,7 +218,7 @@ enum {
     kTrackCondB,
     kTrackProbB,
 
-    kTrackParamCount  // = 28
+    kTrackParamCount  // = 26
 };
 
 // Validate parameter layout matches config constants
@@ -279,10 +277,6 @@ struct TrackParams {
     int stability() const { return raw(kTrackStability); }
     int motion() const { return raw(kTrackMotion); }
     int randomness() const { return raw(kTrackRandomness); }
-    int gravity() const { return raw(kTrackGravity); }
-    int gravityAnchor(int loopLen) const {
-        return clampParam(raw(kTrackGravityAnchor), 1, loopLen);
-    }
     int pedal() const { return raw(kTrackPedal); }
     int pedalStep(int loopLen) const {
         return clampParam(raw(kTrackPedalStep), 1, loopLen);

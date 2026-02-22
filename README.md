@@ -75,8 +75,7 @@ Probability-based transformations applied in this fixed order to the step chosen
 1. **Stability** (0-100%): Probability to hold the current step instead of advancing
 2. **Motion** (0-100%): Random jitter applied to step position
 3. **Randomness** (0-100%): Probability to jump to a completely random step
-4. **Gravity** (0-100%): Bias toward the **Anchor** step (1-128)
-5. **Pedal** (0-100%): Probability to return to the **Pedal Step** (1-128)
+4. **Pedal** (0-100%): Probability to return to the **Pedal Step** (1-128)
 
 ### Binary Modifiers
 

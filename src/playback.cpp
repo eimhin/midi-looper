@@ -368,7 +368,7 @@ static void playTrackEvents(MidiLooperAlgorithm* alg, int track, int finalStep,
 //
 // 2. CONTINUOUS MODIFIERS (applyModifiers)
 //    - Probability-based transformations applied to base step
-//    - Order within: Stability -> Motion -> Randomness -> Gravity -> Pedal
+//    - Order within: Stability -> Motion -> Randomness -> Pedal
 //    - Each modifier may override or adjust the step independently
 //    - Output: potentially modified step position
 //

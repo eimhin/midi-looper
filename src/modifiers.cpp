@@ -31,17 +31,6 @@ int applyModifiers(MidiLooperAlgorithm* alg, int track, int baseStep, int loopLe
         step = randRange(alg->randState, 1, loopLen);
     }
 
-    // Gravity: bias toward anchor step
-    int gravity = tp.gravity();
-    if (gravity > 0 && randFloat(alg->randState) * 100.0f < (float)gravity) {
-        int gravityAnchor = tp.gravityAnchor(loopLen);
-        int diff = gravityAnchor - step;
-        if (diff != 0) {
-            step = step + (diff > 0 ? 1 : -1);
-            step = ((step - 1 + loopLen) % loopLen) + 1;
-        }
-    }
-
     // Pedal: chance to return to pedal step
     int pedal = tp.pedal();
     if (pedal > 0 && randFloat(alg->randState) * 100.0f < (float)pedal) {
