@@ -227,7 +227,7 @@ static void processNoteDurations(MidiLooperAlgorithm* alg, int track, uint32_t w
 // ============================================================================
 
 // Calculate step position based on direction mode
-static int calculateTrackStep(MidiLooperAlgorithm* alg, int track, int loopLen, int dir, int strideSize) {
+static int calculateTrackStep(MidiLooperAlgorithm* alg, int track, int loopLen, int dir) {
     TrackState* ts = &alg->trackStates[track];
 
     if (dir == DIR_BROWNIAN) {
@@ -250,7 +250,7 @@ static int calculateTrackStep(MidiLooperAlgorithm* alg, int track, int loopLen, 
         return step;
     }
 
-    return getStepForClock(ts->clockCount, loopLen, dir, strideSize, alg->randState);
+    return getStepForClock(ts->clockCount, loopLen, dir, alg->randState);
 }
 
 // ============================================================================
@@ -409,7 +409,7 @@ void processTrack(MidiLooperAlgorithm* alg, int track, bool panicOnWrap) {
 
     // === STEP CALCULATION PIPELINE (see documentation above) ===
     // Stage 1: Base step from direction mode
-    int baseStep = calculateTrackStep(alg, track, loopLen, tp.direction(), tp.strideSize());
+    int baseStep = calculateTrackStep(alg, track, loopLen, tp.direction());
     // Stage 2: Continuous probability-based modifiers
     int modifiedStep = applyModifiers(alg, track, baseStep, loopLen);
     // Stage 3: Binary accept/reject filters (uses lastStep from previous cycle)

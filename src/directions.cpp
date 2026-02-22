@@ -2,18 +2,18 @@
 #include "random.h"
 
 // ============================================================================
-// DIRECTION STRATEGY IMPLEMENTATIONS
+// DIRECTION STRATEGY IMPLEMENTATIONS (15 modes)
 // ============================================================================
 
-static int dirForward(int clockCount, int loopLen, int, uint32_t&) {
+static int dirForward(int clockCount, int loopLen, uint32_t&) {
     return ((clockCount - 1) % loopLen) + 1;
 }
 
-static int dirReverse(int clockCount, int loopLen, int, uint32_t&) {
+static int dirReverse(int clockCount, int loopLen, uint32_t&) {
     return loopLen - ((clockCount - 1) % loopLen);
 }
 
-static int dirPendulum(int clockCount, int loopLen, int, uint32_t&) {
+static int dirPendulum(int clockCount, int loopLen, uint32_t&) {
     int cycle = 2 * (loopLen - 1);
     int posInCycle = (clockCount - 1) % cycle;
     if (posInCycle < loopLen) {
@@ -23,7 +23,7 @@ static int dirPendulum(int clockCount, int loopLen, int, uint32_t&) {
     }
 }
 
-static int dirPingPong(int clockCount, int loopLen, int, uint32_t&) {
+static int dirPingPong(int clockCount, int loopLen, uint32_t&) {
     int cycle = 2 * loopLen;
     int posInCycle = (clockCount - 1) % cycle;
     if (posInCycle < loopLen) {
@@ -33,11 +33,7 @@ static int dirPingPong(int clockCount, int loopLen, int, uint32_t&) {
     }
 }
 
-static int dirStride(int clockCount, int loopLen, int strideSize, uint32_t&) {
-    return (((clockCount - 1) * strideSize) % loopLen) + 1;
-}
-
-static int dirOddEven(int clockCount, int loopLen, int, uint32_t&) {
+static int dirOddEven(int clockCount, int loopLen, uint32_t&) {
     int pos = ((clockCount - 1) % loopLen) + 1;
     int numOdds = (loopLen + 1) / 2;
     if (pos <= numOdds) {
@@ -47,7 +43,7 @@ static int dirOddEven(int clockCount, int loopLen, int, uint32_t&) {
     }
 }
 
-static int dirHopscotch(int clockCount, int loopLen, int, uint32_t&) {
+static int dirHopscotch(int clockCount, int loopLen, uint32_t&) {
     int pos = ((clockCount - 1) % (loopLen * 2)) + 1;
     int stepIndex = (pos + 1) / 2;
     if (pos % 2 == 1) {
@@ -58,7 +54,7 @@ static int dirHopscotch(int clockCount, int loopLen, int, uint32_t&) {
     }
 }
 
-static int dirConverge(int clockCount, int loopLen, int, uint32_t&) {
+static int dirConverge(int clockCount, int loopLen, uint32_t&) {
     int pos = ((clockCount - 1) % loopLen) + 1;
     int pairIndex = (pos + 1) / 2;
     if (pos % 2 == 1) {
@@ -68,7 +64,7 @@ static int dirConverge(int clockCount, int loopLen, int, uint32_t&) {
     }
 }
 
-static int dirDiverge(int clockCount, int loopLen, int, uint32_t&) {
+static int dirDiverge(int clockCount, int loopLen, uint32_t&) {
     int pos = ((clockCount - 1) % loopLen) + 1;
     int mid = (loopLen + 1) / 2;
     int pairIndex = (pos + 1) / 2;
@@ -81,16 +77,32 @@ static int dirDiverge(int clockCount, int loopLen, int, uint32_t&) {
 
 // Note: DIR_BROWNIAN and DIR_SHUFFLE are handled specially in calculateTrackStep()
 // They maintain state across calls, so they don't fit the stateless strategy pattern
-static int dirBrownianPlaceholder(int clockCount, int loopLen, int, uint32_t&) {
+static int dirBrownianPlaceholder(int clockCount, int loopLen, uint32_t&) {
     return ((clockCount - 1) % loopLen) + 1;
 }
 
-static int dirRandom(int, int loopLen, int, uint32_t& randState) {
+static int dirRandom(int, int loopLen, uint32_t& randState) {
     return randRange(randState, 1, loopLen);
 }
 
-static int dirShufflePlaceholder(int clockCount, int loopLen, int, uint32_t&) {
+static int dirShufflePlaceholder(int clockCount, int loopLen, uint32_t&) {
     return ((clockCount - 1) % loopLen) + 1;
+}
+
+static int dirStride2(int clockCount, int loopLen, uint32_t&) {
+    return (((clockCount - 1) * 2) % loopLen) + 1;
+}
+
+static int dirStride3(int clockCount, int loopLen, uint32_t&) {
+    return (((clockCount - 1) * 3) % loopLen) + 1;
+}
+
+static int dirStride4(int clockCount, int loopLen, uint32_t&) {
+    return (((clockCount - 1) * 4) % loopLen) + 1;
+}
+
+static int dirStride5(int clockCount, int loopLen, uint32_t&) {
+    return (((clockCount - 1) * 5) % loopLen) + 1;
 }
 
 // ============================================================================
@@ -102,33 +114,36 @@ static const DirectionStrategy directionStrategies[] = {
     dirReverse,             // DIR_REVERSE = 1
     dirPendulum,            // DIR_PENDULUM = 2
     dirPingPong,            // DIR_PINGPONG = 3
-    dirStride,              // DIR_STRIDE = 4
-    dirOddEven,             // DIR_ODD_EVEN = 5
-    dirHopscotch,           // DIR_HOPSCOTCH = 6
-    dirConverge,            // DIR_CONVERGE = 7
-    dirDiverge,             // DIR_DIVERGE = 8
-    dirBrownianPlaceholder, // DIR_BROWNIAN = 9 (handled specially)
-    dirRandom,              // DIR_RANDOM = 10
-    dirShufflePlaceholder,  // DIR_SHUFFLE = 11 (handled specially)
+    dirOddEven,             // DIR_ODD_EVEN = 4
+    dirHopscotch,           // DIR_HOPSCOTCH = 5
+    dirConverge,            // DIR_CONVERGE = 6
+    dirDiverge,             // DIR_DIVERGE = 7
+    dirBrownianPlaceholder, // DIR_BROWNIAN = 8 (handled specially)
+    dirRandom,              // DIR_RANDOM = 9
+    dirShufflePlaceholder,  // DIR_SHUFFLE = 10 (handled specially)
+    dirStride2,             // DIR_STRIDE2 = 11
+    dirStride3,             // DIR_STRIDE3 = 12
+    dirStride4,             // DIR_STRIDE4 = 13
+    dirStride5,             // DIR_STRIDE5 = 14
 };
 
 static constexpr int NUM_DIRECTIONS = sizeof(directionStrategies) / sizeof(directionStrategies[0]);
 
-static_assert(NUM_DIRECTIONS == 12, "Direction strategy table size mismatch - update table when adding directions");
+static_assert(NUM_DIRECTIONS == 15, "Direction strategy table size mismatch - update table when adding directions");
 
 // ============================================================================
 // MAIN DIRECTION DISPATCH
 // ============================================================================
 
-int getStepForClock(int clockCount, int loopLen, int dir, int strideSize, uint32_t& randState) {
+int getStepForClock(int clockCount, int loopLen, int dir, uint32_t& randState) {
     if (loopLen == 1) return 1;
     if (clockCount < 1) return 0;
 
     if (dir < 0 || dir >= NUM_DIRECTIONS) {
-        return dirForward(clockCount, loopLen, strideSize, randState);
+        return dirForward(clockCount, loopLen, randState);
     }
 
-    return directionStrategies[dir](clockCount, loopLen, strideSize, randState);
+    return directionStrategies[dir](clockCount, loopLen, randState);
 }
 
 // ============================================================================
@@ -194,14 +209,17 @@ static const WrapDetector wrapDetectors[] = {
     wrapReverse,    // DIR_REVERSE = 1
     wrapPendulum,   // DIR_PENDULUM = 2
     wrapPingPong,   // DIR_PINGPONG = 3
-    wrapStride,     // DIR_STRIDE = 4
-    wrapCyclic,     // DIR_ODD_EVEN = 5
-    wrapHopscotch,  // DIR_HOPSCOTCH = 6
-    wrapCyclic,     // DIR_CONVERGE = 7
-    wrapCyclic,     // DIR_DIVERGE = 8
-    wrapCyclic,     // DIR_BROWNIAN = 9
-    wrapCyclic,     // DIR_RANDOM = 10
-    wrapCyclic,     // DIR_SHUFFLE = 11
+    wrapCyclic,     // DIR_ODD_EVEN = 4
+    wrapHopscotch,  // DIR_HOPSCOTCH = 5
+    wrapCyclic,     // DIR_CONVERGE = 6
+    wrapCyclic,     // DIR_DIVERGE = 7
+    wrapCyclic,     // DIR_BROWNIAN = 8
+    wrapCyclic,     // DIR_RANDOM = 9
+    wrapCyclic,     // DIR_SHUFFLE = 10
+    wrapStride,     // DIR_STRIDE2 = 11
+    wrapStride,     // DIR_STRIDE3 = 12
+    wrapStride,     // DIR_STRIDE4 = 13
+    wrapStride,     // DIR_STRIDE5 = 14
 };
 
 bool detectWrap(int prevPos, int currPos, int loopLen, int dir, int clockCount) {

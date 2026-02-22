@@ -96,14 +96,17 @@ static constexpr int DIR_FORWARD = 0;
 static constexpr int DIR_REVERSE = 1;
 static constexpr int DIR_PENDULUM = 2;
 static constexpr int DIR_PINGPONG = 3;
-static constexpr int DIR_STRIDE = 4;
-static constexpr int DIR_ODD_EVEN = 5;
-static constexpr int DIR_HOPSCOTCH = 6;
-static constexpr int DIR_CONVERGE = 7;
-static constexpr int DIR_DIVERGE = 8;
-static constexpr int DIR_BROWNIAN = 9;
-static constexpr int DIR_RANDOM = 10;
-static constexpr int DIR_SHUFFLE = 11;
+static constexpr int DIR_ODD_EVEN = 4;
+static constexpr int DIR_HOPSCOTCH = 5;
+static constexpr int DIR_CONVERGE = 6;
+static constexpr int DIR_DIVERGE = 7;
+static constexpr int DIR_BROWNIAN = 8;
+static constexpr int DIR_RANDOM = 9;
+static constexpr int DIR_SHUFFLE = 10;
+static constexpr int DIR_STRIDE2 = 11;
+static constexpr int DIR_STRIDE3 = 12;
+static constexpr int DIR_STRIDE4 = 13;
+static constexpr int DIR_STRIDE5 = 14;
 
 // Generate mode constants
 static constexpr int GEN_MODE_NEW = 0;
@@ -192,7 +195,6 @@ enum {
     kTrackLength,
     kTrackClockDiv,
     kTrackDirection,
-    kTrackStrideSize,
     kTrackVelocity,
     kTrackHumanize,
     kTrackChannel,
@@ -218,7 +220,7 @@ enum {
     kTrackCondB,
     kTrackProbB,
 
-    kTrackParamCount  // = 29
+    kTrackParamCount  // = 28
 };
 
 // Validate parameter layout matches config constants
@@ -266,7 +268,6 @@ struct TrackParams {
     bool enabled() const { return raw(kTrackEnabled) == 1; }
     int length() const { return clampParam(raw(kTrackLength), 1, MAX_STEPS); }
     int direction() const { return raw(kTrackDirection); }
-    int strideSize() const { return raw(kTrackStrideSize); }
 
     // Output settings
     int channel() const { return clampParam(raw(kTrackChannel), 1, 16); }

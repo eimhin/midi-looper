@@ -1,6 +1,6 @@
 /*
  * MIDI Looper - Direction Calculations
- * Step position calculations for all 12 playback direction modes
+ * Step position calculations for all 15 playback direction modes
  * Uses Strategy pattern for extensibility
  */
 
@@ -9,11 +9,11 @@
 #include "types.h"
 
 // Strategy type definitions
-typedef int (*DirectionStrategy)(int clockCount, int loopLen, int strideSize, uint32_t& randState);
+typedef int (*DirectionStrategy)(int clockCount, int loopLen, uint32_t& randState);
 typedef bool (*WrapDetector)(int prevPos, int currPos, int loopLen, int clockCount);
 
 // Direction dispatch
-int getStepForClock(int clockCount, int loopLen, int dir, int strideSize, uint32_t& randState);
+int getStepForClock(int clockCount, int loopLen, int dir, uint32_t& randState);
 
 // Stateful direction helpers
 int updateBrownianStep(int currentPos, int loopLen, uint32_t& randState);
