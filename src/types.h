@@ -407,6 +407,9 @@ struct TrackState {
 
     // Parameter cache
     TrackCache cache;
+
+    // Per-track PRNG state
+    uint32_t randState;
 };
 
 // DTC (Data Tightly Coupled) - Fast access global state for step()
@@ -467,9 +470,6 @@ struct MidiLooperAlgorithm : public _NT_algorithm {
     // Delayed notes for humanization
     DelayedNote delayedNotes[MAX_DELAYED_NOTES];
 
-    // Simple PRNG state
-    uint32_t randState;
-
     MidiLooperAlgorithm(MidiLooper_DTC* dtc_, TrackState* trackStates_, uint8_t numTracks_)
-        : dtc(dtc_), trackStates(trackStates_), numTracks(numTracks_), randState(12345) {}
+        : dtc(dtc_), trackStates(trackStates_), numTracks(numTracks_) {}
 };

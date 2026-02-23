@@ -12,7 +12,7 @@ int applyModifiers(MidiLooperAlgorithm* alg, int track, int baseStep, int loopLe
 
     // Stability: chance to hold current step
     int stability = tp.stability();
-    if (stability > 0 && randFloat(alg->randState) * 100.0f < (float)stability) {
+    if (stability > 0 && randFloat(alg->trackStates[track].randState) * 100.0f < (float)stability) {
         step = (alg->trackStates[track].lastStep > 0) ? alg->trackStates[track].lastStep : step;
     }
 
@@ -21,19 +21,19 @@ int applyModifiers(MidiLooperAlgorithm* alg, int track, int baseStep, int loopLe
     if (motion > 0) {
         int maxJitter = (loopLen * motion) / 100;
         if (maxJitter < 1) maxJitter = 1;
-        int jitter = randRange(alg->randState, -maxJitter, maxJitter);
+        int jitter = randRange(alg->trackStates[track].randState, -maxJitter, maxJitter);
         step = ((step - 1 + jitter + loopLen * 100) % loopLen) + 1;
     }
 
     // Randomness: chance to override with random step
     int randomness = tp.randomness();
-    if (randomness > 0 && randFloat(alg->randState) * 100.0f < (float)randomness) {
-        step = randRange(alg->randState, 1, loopLen);
+    if (randomness > 0 && randFloat(alg->trackStates[track].randState) * 100.0f < (float)randomness) {
+        step = randRange(alg->trackStates[track].randState, 1, loopLen);
     }
 
     // Pedal: chance to return to pedal step
     int pedal = tp.pedal();
-    if (pedal > 0 && randFloat(alg->randState) * 100.0f < (float)pedal) {
+    if (pedal > 0 && randFloat(alg->trackStates[track].randState) * 100.0f < (float)pedal) {
         step = tp.pedalStep(loopLen);
     }
 

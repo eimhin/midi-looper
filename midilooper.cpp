@@ -115,11 +115,16 @@ _NT_algorithm* construct(const _NT_algorithmMemoryPtrs& ptrs, const _NT_algorith
         ts->cache.invalidate();
     }
 
+    // Seed per-track PRNGs with hardware entropy
+    {
+        uint32_t seed = NT_getCpuCycleCount();
+        for (int t = 0; t < numTracks; t++) {
+            trackStates[t].randState = seed + (uint32_t)t;
+        }
+    }
+
     // Construct algorithm in SRAM
     MidiLooperAlgorithm* pThis = new (ptrs.sram) MidiLooperAlgorithm(dtc, trackStates, numTracks);
-
-    // Seed PRNG with hardware entropy for unique randomness per instance
-    pThis->randState = NT_getCpuCycleCount();
 
     // Initialize held notes
     for (int i = 0; i < 128; i++) {

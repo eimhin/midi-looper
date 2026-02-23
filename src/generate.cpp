@@ -39,13 +39,13 @@ static void generateNew(MidiLooperAlgorithm* alg, int track) {
         if (quantize > 1 && ((s - 1) % quantize) != 0) continue;
 
         // Density roll
-        if (randRange(alg->randState, 1, 100) > density) continue;
+        if (randRange(ts->randState, 1, 100) > density) continue;
 
         // Generate note: bias +/- (range * noteRand / 100)
         int spread = (range * noteRand) / 100;
         int note;
         if (spread > 0) {
-            note = bias + randRange(alg->randState, -spread, spread);
+            note = bias + randRange(ts->randState, -spread, spread);
         } else {
             note = bias;
         }
@@ -56,7 +56,7 @@ static void generateNew(MidiLooperAlgorithm* alg, int track) {
         int velSpread = (100 * velVar) / 200; // half-range
         int vel = 100;
         if (velSpread > 0) {
-            vel = 100 + randRange(alg->randState, -velSpread, velSpread);
+            vel = 100 + randRange(ts->randState, -velSpread, velSpread);
         }
         vel = clamp(vel, 1, 127);
 
@@ -64,7 +64,7 @@ static void generateNew(MidiLooperAlgorithm* alg, int track) {
         int maxDur = (quantize > 1) ? quantize : 1;
         int minDur = maxDur - (maxDur * gateRand) / 100;
         if (minDur < 1) minDur = 1;
-        int durVal = (minDur < maxDur) ? randRange(alg->randState, minDur, maxDur) : maxDur;
+        int durVal = (minDur < maxDur) ? randRange(ts->randState, minDur, maxDur) : maxDur;
         uint16_t dur = (uint16_t)durVal;
 
         int idx = safeStepIndex(s - 1);
@@ -76,7 +76,7 @@ static void generateNew(MidiLooperAlgorithm* alg, int track) {
         for (int s = 0; s < loopLen; s++) {
             StepEvents* evs = &ts->data.steps[s];
             if (evs->count == 0) continue;
-            if (randRange(alg->randState, 1, 100) > ties) continue;
+            if (randRange(ts->randState, 1, 100) > ties) continue;
 
             // Scan forward (wrapping) to find next occupied step
             int dist = 0;
@@ -139,7 +139,7 @@ static void generateReorder(MidiLooperAlgorithm* alg, int track) {
 
     // Fisher-Yates shuffle the notes
     for (int i = count - 1; i > 0; i--) {
-        int j = randRange(alg->randState, 0, i);
+        int j = randRange(ts->randState, 0, i);
         CollectedNote tmp = collected[i];
         collected[i] = collected[j];
         collected[j] = tmp;
@@ -179,7 +179,7 @@ static void generateRepitch(MidiLooperAlgorithm* alg, int track) {
         for (int e = 0; e < evs->count; e++) {
             int note;
             if (spread > 0) {
-                note = bias + randRange(alg->randState, -spread, spread);
+                note = bias + randRange(ts->randState, -spread, spread);
             } else {
                 note = bias;
             }

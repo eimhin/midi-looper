@@ -234,14 +234,14 @@ static int calculateTrackStep(MidiLooperAlgorithm* alg, int track, int loopLen, 
         if (ts->clockCount == 1) {
             ts->brownianPos = 1;
         } else {
-            ts->brownianPos = (uint8_t)updateBrownianStep(ts->brownianPos, loopLen, alg->randState);
+            ts->brownianPos = (uint8_t)updateBrownianStep(ts->brownianPos, loopLen, ts->randState);
         }
         return ts->brownianPos;
     }
 
     if (dir == DIR_SHUFFLE) {
         if (ts->shufflePos > loopLen) {
-            generateShuffleOrder(ts->shuffleOrder, loopLen, alg->randState);
+            generateShuffleOrder(ts->shuffleOrder, loopLen, ts->randState);
             ts->shufflePos = 1;
         }
         // shufflePos is validated above (1 to loopLen), loopLen <= MAX_STEPS
@@ -250,7 +250,7 @@ static int calculateTrackStep(MidiLooperAlgorithm* alg, int track, int loopLen, 
         return step;
     }
 
-    return getStepForClock(ts->clockCount, loopLen, dir, alg->randState);
+    return getStepForClock(ts->clockCount, loopLen, dir, ts->randState);
 }
 
 // ============================================================================
@@ -298,8 +298,8 @@ static int calculateOctaveJump(MidiLooperAlgorithm* alg, int track, TrackParams&
 
     // Probability check
     int prob = tp.octProb();
-    if (randFloat(alg->randState) * 100.0f < (float)prob) {
-        int octave = randRange(alg->randState, octMin, octMax);
+    if (randFloat(ts->randState) * 100.0f < (float)prob) {
+        int octave = randRange(ts->randState, octMin, octMax);
         return octave * 12;
     }
 
@@ -320,7 +320,7 @@ static void emitNote(MidiLooperAlgorithm* alg, int track, NoteEvent* ev,
     int scaleType = alg->v[kParamScaleType];
     actualNote = quantizeToScale((uint8_t)actualNote, scaleRoot, scaleType);
     int velocity = clamp((int)ev->velocity + velOffset, 0, 127);
-    int delay = (humanize > 0) ? randRange(alg->randState, 0, humanize) : 0;
+    int delay = (humanize > 0) ? randRange(ts->randState, 0, humanize) : 0;
 
     if (delay == 0) {
         NT_sendMidi3ByteMessage(where, withChannel(kMidiNoteOn, outCh), (uint8_t)actualNote, (uint8_t)velocity);
@@ -457,7 +457,7 @@ void processTrack(MidiLooperAlgorithm* alg, int track, bool panicOnWrap) {
                 if (condStepB > 0 && finalStep == condStepB) prob = tp.probB();
                 if (fixed) prob = 100;
 
-                if (prob >= 100 || (int)(randFloat(alg->randState) * 100.0f) < prob) {
+                if (prob >= 100 || (int)(randFloat(ts->randState) * 100.0f) < prob) {
                     playTrackEvents(alg, track, finalStep, tp, tp.velocity(), tp.humanize(), outCh, where, fixed);
                 }
             }
