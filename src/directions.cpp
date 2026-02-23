@@ -182,8 +182,10 @@ static bool wrapReverse(int prevPos, int currPos, int loopLen, int) {
     return currPos == loopLen && prevPos == 1;
 }
 
-static bool wrapPendulum(int prevPos, int currPos, int loopLen, int) {
-    return (currPos == 1 && prevPos == 2) || (currPos == loopLen && prevPos == loopLen - 1);
+static bool wrapPendulum(int, int, int loopLen, int clockCount) {
+    int cycle = 2 * (loopLen - 1);
+    if (cycle < 1) cycle = 1;
+    return clockCount > 1 && ((clockCount - 1) % cycle) == 0;
 }
 
 static bool wrapPingPong(int, int, int loopLen, int clockCount) {
@@ -221,6 +223,9 @@ static const WrapDetector wrapDetectors[] = {
     wrapStride,     // DIR_STRIDE4 = 13
     wrapStride,     // DIR_STRIDE5 = 14
 };
+
+static_assert(sizeof(wrapDetectors) / sizeof(wrapDetectors[0]) == NUM_DIRECTIONS,
+              "Wrap detector table size mismatch - update table when adding directions");
 
 bool detectWrap(int prevPos, int currPos, int loopLen, int dir, int clockCount) {
     if (prevPos < 1) return false;
