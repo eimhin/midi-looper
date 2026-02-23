@@ -40,8 +40,7 @@ static void drawTrackBox(MidiLooperAlgorithm* alg, const int16_t* v,
     char label[8];
     label[0] = 'T';
     label[1] = '1' + t;
-    label[2] = ':';
-    label[3] = '\0';
+    label[2] = '\0';
     NT_drawText(x, textY, label, textBrightness, kNT_textLeft, kNT_textNormal);
 
     if (trackEnabled && len > 1 && transportIsRunning(dtc->transportState)) {
