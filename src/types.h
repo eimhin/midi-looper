@@ -132,17 +132,24 @@ static constexpr int UI_STEP_Y_TOP = 26;
 static constexpr int UI_STEP_Y_BOTTOM = 30;
 static constexpr int UI_STEP_SPACING = 8;
 static constexpr int UI_STEP_WIDTH = 4;
-static constexpr int UI_INPUT_LABEL_X = 163;
-static constexpr int UI_INPUT_BAR_X = 179;
-static constexpr int UI_OUTPUT_LABEL_X = 195;
-static constexpr int UI_OUTPUT_BAR_X = 211;
+static constexpr int UI_INPUT_LABEL_X = 124;
+static constexpr int UI_INPUT_BAR_X = 138;
+static constexpr int UI_OUTPUT_LABEL_X = 162;
+static constexpr int UI_OUTPUT_BAR_X = 176;
 static constexpr int UI_OUTPUT_BAR_SPACE = 10;
 static constexpr int UI_LABEL_Y = 20;
 static constexpr int UI_TRACK_WIDTH = 65;
 static constexpr int UI_TRACK_BOX_WIDTH = 56;
-static constexpr int UI_TRACK_BOX_TOP = 40;
-static constexpr int UI_TRACK_BOX_BOTTOM = 52;
-static constexpr int UI_TRACK_TEXT_Y = 50;
+
+// Track boxes - Row 1 (tracks 1-4)
+static constexpr int UI_TRACK_ROW1_TOP = 35;
+static constexpr int UI_TRACK_ROW1_BOTTOM = 45;
+static constexpr int UI_TRACK_ROW1_TEXT_Y = 43;
+
+// Track boxes - Row 2 (tracks 5-8)
+static constexpr int UI_TRACK_ROW2_TOP = 47;
+static constexpr int UI_TRACK_ROW2_BOTTOM = 57;
+static constexpr int UI_TRACK_ROW2_TEXT_Y = 55;
 static constexpr int UI_CHAR_WIDTH = 6;
 static constexpr int UI_BRIGHTNESS_MAX = 15;
 static constexpr int UI_BRIGHTNESS_DIM = 1;
@@ -247,7 +254,7 @@ static inline int clampParam(int val, int minVal, int maxVal) {
 // Provides clean access without scattered v[] index calculations
 struct TrackParams {
     const int16_t* v;   // Pointer to parameter array
-    int track;          // Track index (0-3)
+    int track;          // Track index (0-7)
 
     // Factory method
     static TrackParams fromAlgorithm(const int16_t* params, int trackIdx) {
@@ -445,6 +452,9 @@ struct MidiLooperAlgorithm : public _NT_algorithm {
 
     // Dynamic track configuration (from specification)
     uint8_t numTracks;
+
+    // Mutable copy of parameter definitions (for runtime max adjustments)
+    _NT_parameter paramDefs[MAX_TOTAL_PARAMS];
 
     // Dynamic parameter pages (built in construct based on numTracks)
     uint8_t pageTrackIndices[MAX_TRACKS][PARAMS_PER_TRACK];

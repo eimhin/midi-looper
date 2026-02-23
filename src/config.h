@@ -31,7 +31,7 @@
 // TRACK CONFIGURATION
 // ============================================================================
 
-static constexpr int MAX_TRACKS = 4; // Maximum number of tracks
+static constexpr int MAX_TRACKS = 8; // Maximum number of tracks
 static constexpr int MIN_TRACKS = 1; // Minimum number of tracks
 
 // ============================================================================

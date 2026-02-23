@@ -14,7 +14,7 @@
 // ============================================================================
 
 static const char* const recordStrings[] = {"Off", "On", NULL};
-static const char* const recTrackStrings[] = {"1", "2", "3", "4", NULL};
+static const char* const recTrackStrings[] = {"1", "2", "3", "4", "5", "6", "7", "8", NULL};
 static const char* const recModeStrings[] = {"Replace", "Overdub", "Step", NULL};
 static const char* const midiDestStrings[] = {"Breakout", "SelectBus", "USB", "Internal", "All", NULL};
 static const char* const noYesStrings[] = {"No", "Yes", NULL};
@@ -92,7 +92,7 @@ static const _NT_parameter parameters[] = {
 
     // Global parameters (2-10)
     {.name = "Record", .min = 0, .max = 1, .def = 0, .unit = kNT_unitEnum, .scaling = 0, .enumStrings = recordStrings},
-    {.name = "Rec Track", .min = 0, .max = 3, .def = 0, .unit = kNT_unitEnum, .scaling = 0, .enumStrings = recTrackStrings},
+    {.name = "Rec Track", .min = 0, .max = 7, .def = 0, .unit = kNT_unitEnum, .scaling = 0, .enumStrings = recTrackStrings},
     {.name = "Division", .min = 0, .max = 4, .def = 0, .unit = kNT_unitEnum, .scaling = 0, .enumStrings = divisionStrings},
     {.name = "Rec Mode", .min = 0, .max = 2, .def = 0, .unit = kNT_unitEnum, .scaling = 0, .enumStrings = recModeStrings},
     {.name = "Rec Snap", .min = 50, .max = 100, .def = 75, .unit = kNT_unitPercent, .scaling = 0, .enumStrings = NULL},
@@ -120,6 +120,10 @@ static const _NT_parameter parameters[] = {
     TRACK_PARAMS(0, 3) // Track 2: disabled by default, channel 3
     TRACK_PARAMS(0, 4) // Track 3: disabled by default, channel 4
     TRACK_PARAMS(0, 5) // Track 4: disabled by default, channel 5
+    TRACK_PARAMS(0, 6) // Track 5: disabled by default, channel 6
+    TRACK_PARAMS(0, 7) // Track 6: disabled by default, channel 7
+    TRACK_PARAMS(0, 8) // Track 7: disabled by default, channel 8
+    TRACK_PARAMS(0, 9) // Track 8: disabled by default, channel 9
 };
 
 #undef TRACK_PARAMS
@@ -146,7 +150,7 @@ static const uint8_t pageGenerate[] = {kParamGenerate,    kParamGenMode,     kPa
 // DYNAMIC PAGE BUILDING (for specification-based track count)
 // ============================================================================
 
-static const char* const trackPageNames[] = {"Track 1", "Track 2", "Track 3", "Track 4"};
+static const char* const trackPageNames[] = {"Track 1", "Track 2", "Track 3", "Track 4", "Track 5", "Track 6", "Track 7", "Track 8"};
 
 // Build track page indices into the provided array
 // Returns the number of indices written (PARAMS_PER_TRACK)

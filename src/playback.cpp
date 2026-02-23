@@ -88,7 +88,7 @@ void handleTransportStart(MidiLooperAlgorithm* alg) {
 
     // Promote pending live recording now that transport is running
     if (dtc->recordState == REC_LIVE_PENDING) {
-        int recTrack = alg->v[kParamRecTrack];
+        int recTrack = clampParam(alg->v[kParamRecTrack], 0, alg->numTracks - 1);
         if (alg->v[kParamRecMode] == REC_MODE_REPLACE) {
             clearTrackEvents(&alg->trackStates[recTrack].data);
         }

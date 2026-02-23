@@ -1,11 +1,11 @@
 /*
  * MIDI Looper - distingNT Plugin
  *
- * 4-track MIDI step recorder/sequencer with quantized recording and independent
+ * Multi-track MIDI step recorder/sequencer with quantized recording and independent
  * track lengths, directions, and output channels.
  *
  * FEATURES:
- * - 4 independent MIDI tracks with separate lengths (1-128 steps), divisions, and output channels
+ * - 8 independent MIDI tracks with separate lengths (1-128 steps), divisions, and output channels
  * - Quantized step recording with configurable snap threshold
  * - Replace or Overdub recording modes
  * - MIDI pass-through from input to active track's output channel
@@ -160,8 +160,12 @@ _NT_algorithm* construct(const _NT_algorithmMemoryPtrs& ptrs, const _NT_algorith
     pThis->dynamicPages.numPages = 4 + numTracks;
     pThis->dynamicPages.pages = pThis->pageDefs;
 
+    // Copy static parameter definitions into mutable array and adjust Rec Track max
+    memcpy(pThis->paramDefs, parameters, sizeof(_NT_parameter) * calcTotalParams(numTracks));
+    pThis->paramDefs[kParamRecTrack].max = numTracks - 1;
+
     // Set up parameters and pages
-    pThis->parameters = parameters;
+    pThis->parameters = pThis->paramDefs;
     pThis->parameterPages = &pThis->dynamicPages;
 
     (void)req; // Silence unused parameter warning
@@ -241,7 +245,7 @@ void step(_NT_algorithm* self, float* busFrames, int numFramesBy4) {
     int clearTrack = v[kParamClearTrack];
     if (clearTrack != dtc->lastClearTrack) {
         if (clearTrack == 1) {
-            int track = v[kParamRecTrack];
+            int track = clampParam(v[kParamRecTrack], 0, alg->numTracks - 1);
             TrackParams tp = TrackParams::fromAlgorithm(v, track);
             uint32_t where = destToWhere(tp.destination());
             sendTrackNotesOff(alg, track, where, tp.channel());
@@ -268,7 +272,7 @@ void step(_NT_algorithm* self, float* busFrames, int numFramesBy4) {
     int generate = v[kParamGenerate];
     if (generate != dtc->lastGenerate) {
         if (generate == 1) {
-            int track = v[kParamRecTrack];
+            int track = clampParam(v[kParamRecTrack], 0, alg->numTracks - 1);
             executeGenerate(alg, track);
         }
         dtc->lastGenerate = generate;
@@ -282,7 +286,7 @@ void step(_NT_algorithm* self, float* busFrames, int numFramesBy4) {
     {
         int record = v[kParamRecord];
         int recMode = v[kParamRecMode];
-        int recTrack = v[kParamRecTrack];
+        int recTrack = clampParam(v[kParamRecTrack], 0, alg->numTracks - 1);
         bool isStepMode = (recMode == REC_MODE_STEP);
 
         // Handle recording track change
@@ -404,7 +408,7 @@ void midiMessage(_NT_algorithm* self, uint8_t byte0, uint8_t byte1, uint8_t byte
         return;
     }
 
-    int track = v[kParamRecTrack];
+    int track = clampParam(v[kParamRecTrack], 0, alg->numTracks - 1);
     TrackParams tp = TrackParams::fromAlgorithm(v, track);
     int outCh = tp.channel();
     uint32_t where = destToWhere(tp.destination());
@@ -493,7 +497,7 @@ bool deserialise(_NT_algorithm* self, _NT_jsonParse& parse) {
 static const _NT_factory factory = {
     .guid = NT_MULTICHAR('M', 'i', 'L', '3'), // MIDI Looper v3
     .name = "MIDI Looper",
-    .description = "1-4 track MIDI step recorder/sequencer",
+    .description = "1-8 track MIDI step recorder/sequencer",
     .numSpecifications = NUM_SPECS,
     .specifications = specifications,
     .calculateStaticRequirements = NULL,

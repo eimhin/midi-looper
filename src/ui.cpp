@@ -14,6 +14,42 @@ static void drawVelBar(int x, int vel) {
     }
 }
 
+static void drawTrackBox(MidiLooperAlgorithm* alg, const int16_t* v,
+                         int t, int x, int boxTop, int boxBottom, int textY,
+                         int recTrack) {
+    MidiLooper_DTC* dtc = alg->dtc;
+    TrackParams tp = TrackParams::fromAlgorithm(v, t);
+    int len = tp.length();
+    bool trackEnabled = tp.enabled();
+
+    int rawStep = 1;
+    if (trackEnabled) {
+        rawStep = clampParam(alg->trackStates[t].step, 1, len);
+    }
+
+    int boxFill = trackEnabled ? UI_BRIGHTNESS_DIM : 0;
+
+    NT_drawShapeI(kNT_rectangle, x - 1, boxTop, x + UI_TRACK_BOX_WIDTH, boxBottom, boxFill);
+
+    if (t == recTrack) {
+        NT_drawShapeI(kNT_box, x - 1, boxTop, x + UI_TRACK_BOX_WIDTH, boxBottom, UI_BRIGHTNESS_MAX);
+    }
+
+    int textBrightness = trackEnabled ? UI_BRIGHTNESS_MAX : 2;
+
+    char label[8];
+    label[0] = 'T';
+    label[1] = '1' + t;
+    label[2] = ':';
+    label[3] = '\0';
+    NT_drawText(x, textY, label, textBrightness, kNT_textLeft, kNT_textNormal);
+
+    if (trackEnabled && len > 1 && transportIsRunning(dtc->transportState)) {
+        int lineX = x + (rawStep - 1) * (UI_TRACK_BOX_WIDTH - 2) / (len - 1);
+        NT_drawShapeI(kNT_line, lineX, boxTop + 1, lineX, boxBottom - 1, UI_BRIGHTNESS_MAX);
+    }
+}
+
 // ============================================================================
 // MAIN DRAW FUNCTION
 // ============================================================================
@@ -22,7 +58,7 @@ bool drawUI(MidiLooperAlgorithm* alg) {
     MidiLooper_DTC* dtc = alg->dtc;
     const int16_t* v = alg->v;
 
-    int recTrack = v[kParamRecTrack];
+    int recTrack = clampParam(v[kParamRecTrack], 0, alg->numTracks - 1);
 
     // Transport indicator (play triangle or stop square)
     if (transportIsRunning(dtc->transportState)) {
@@ -110,43 +146,15 @@ bool drawUI(MidiLooperAlgorithm* alg) {
         drawVelBar(UI_OUTPUT_BAR_X + t * UI_OUTPUT_BAR_SPACE, alg->trackStates[t].activeVel);
     }
 
-    // Track info boxes
-    for (int t = 0; t < alg->numTracks; t++) {
-        TrackParams tp = TrackParams::fromAlgorithm(v, t);
+    // Track info boxes - Row 1 (tracks 1-4)
+    for (int t = 0; t < alg->numTracks && t < 4; t++) {
         int x = UI_LEFT_MARGIN + t * UI_TRACK_WIDTH;
-        int len = tp.length();
-        bool trackEnabled = tp.enabled();
-
-        int rawStep = 1;
-        if (trackEnabled) {
-            rawStep = clampParam(alg->trackStates[t].step, 1, len);
-        }
-
-        int boxFill = trackEnabled ? UI_BRIGHTNESS_DIM : 0;
-
-        // Draw box
-        NT_drawShapeI(kNT_rectangle, x - 1, UI_TRACK_BOX_TOP, x + UI_TRACK_BOX_WIDTH, UI_TRACK_BOX_BOTTOM, boxFill);
-
-        // Highlight selected track
-        if (t == recTrack) {
-            NT_drawShapeI(kNT_box, x - 1, UI_TRACK_BOX_TOP, x + UI_TRACK_BOX_WIDTH, UI_TRACK_BOX_BOTTOM, UI_BRIGHTNESS_MAX);
-        }
-
-        int textBrightness = trackEnabled ? UI_BRIGHTNESS_MAX : 2;
-
-        // Track label
-        char label[8];
-        label[0] = 'T';
-        label[1] = '1' + t;
-        label[2] = ':';
-        label[3] = '\0';
-        NT_drawText(x, UI_TRACK_TEXT_Y, label, textBrightness, kNT_textLeft, kNT_textNormal);
-
-        // Step position playhead line
-        if (trackEnabled && len > 1 && transportIsRunning(dtc->transportState)) {
-            int lineX = x + (rawStep - 1) * (UI_TRACK_BOX_WIDTH - 2) / (len - 1);
-            NT_drawShapeI(kNT_line, lineX, UI_TRACK_BOX_TOP + 1, lineX, UI_TRACK_BOX_BOTTOM - 1, UI_BRIGHTNESS_MAX);
-        }
+        drawTrackBox(alg, v, t, x, UI_TRACK_ROW1_TOP, UI_TRACK_ROW1_BOTTOM, UI_TRACK_ROW1_TEXT_Y, recTrack);
+    }
+    // Row 2 (tracks 5-8)
+    for (int t = 4; t < alg->numTracks; t++) {
+        int x = UI_LEFT_MARGIN + (t - 4) * UI_TRACK_WIDTH;
+        drawTrackBox(alg, v, t, x, UI_TRACK_ROW2_TOP, UI_TRACK_ROW2_BOTTOM, UI_TRACK_ROW2_TEXT_Y, recTrack);
     }
 
     return false;  // Show standard parameter line at top
