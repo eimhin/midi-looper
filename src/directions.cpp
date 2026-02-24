@@ -14,6 +14,7 @@ static int dirReverse(int clockCount, int loopLen, uint32_t&) {
 }
 
 static int dirPendulum(int clockCount, int loopLen, uint32_t&) {
+    if (loopLen <= 1) return 1;
     int cycle = 2 * (loopLen - 1);
     int posInCycle = (clockCount - 1) % cycle;
     if (posInCycle < loopLen) {

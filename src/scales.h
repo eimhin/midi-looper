@@ -71,7 +71,7 @@ static const int PC_TO_WHITE_KEY[12] = {
 // pentatonic scales (7 white keys > 5 scale degrees).
 // Returns the note unchanged when scaleType == SCALE_OFF.
 static inline uint8_t quantizeToScale(uint8_t note, int root, int scaleType) {
-    if (scaleType == SCALE_OFF) return note;
+    if (scaleType <= SCALE_OFF || scaleType >= SCALE_COUNT) return note;
 
     int scaleIdx = scaleType - 1;  // Interval table is 0-indexed (no OFF entry)
     int scaleSize = scaleSizes[scaleIdx];

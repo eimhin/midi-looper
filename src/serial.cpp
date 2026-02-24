@@ -104,26 +104,30 @@ bool deserialiseData(MidiLooperAlgorithm* alg, _NT_jsonParse& parse) {
                         int numSteps;
                         if (!parse.numberOfArrayElements(numSteps)) return false;
 
-                        // Bounds enforced by && s < MAX_STEPS condition
-                        for (int s = 0; s < numSteps && s < MAX_STEPS; s++) {
+                        for (int s = 0; s < numSteps; s++) {
                             int numEvents;
                             if (!parse.numberOfArrayElements(numEvents)) return false;
 
-                            alg->trackStates[t].data.steps[s].count = 0;
-                            for (int e = 0; e < numEvents && e < MAX_EVENTS_PER_STEP; e++) {
+                            if (s < MAX_STEPS)
+                                alg->trackStates[t].data.steps[s].count = 0;
+
+                            for (int e = 0; e < numEvents; e++) {
                                 int numFields;
                                 if (!parse.numberOfArrayElements(numFields)) return false;
 
-                                if (numFields >= 3) {
-                                    int note, vel, dur;
-                                    if (!parse.number(note)) return false;
-                                    if (!parse.number(vel)) return false;
-                                    if (!parse.number(dur)) return false;
+                                int note = 0, vel = 0, dur = 0;
+                                for (int f = 0; f < numFields; f++) {
+                                    int val;
+                                    if (!parse.number(val)) return false;
+                                    if (f == 0) note = val;
+                                    else if (f == 1) vel = val;
+                                    else if (f == 2) dur = val;
+                                }
 
-                                    if (note >= 0 && note <= 127 && vel >= 0 && vel <= 127 && dur >= 1) {
-                                        addEvent(&alg->trackStates[t].data.steps[s], (uint8_t)note, (uint8_t)vel,
-                                                 (uint16_t)dur);
-                                    }
+                                if (s < MAX_STEPS && e < MAX_EVENTS_PER_STEP &&
+                                    note >= 0 && note <= 127 && vel >= 0 && vel <= 127 && dur >= 1) {
+                                    addEvent(&alg->trackStates[t].data.steps[s], (uint8_t)note, (uint8_t)vel,
+                                             (uint16_t)dur);
                                 }
                             }
                         }
@@ -149,10 +153,11 @@ bool deserialiseData(MidiLooperAlgorithm* alg, _NT_jsonParse& parse) {
                 int numSteps;
                 if (!parse.numberOfArrayElements(numSteps)) return false;
 
-                for (int s = 0; s < numSteps && s < MAX_STEPS; s++) {
+                for (int s = 0; s < numSteps; s++) {
                     int val;
                     if (!parse.number(val)) return false;
-                    alg->trackStates[t].shuffleOrder[s] = (uint8_t)val;
+                    if (s < MAX_STEPS)
+                        alg->trackStates[t].shuffleOrder[s] = (uint8_t)clampParam(val, 1, MAX_STEPS);
                 }
             }
             // Skip any extra tracks in the file beyond our allocation
@@ -170,7 +175,7 @@ bool deserialiseData(MidiLooperAlgorithm* alg, _NT_jsonParse& parse) {
             for (int t = 0; t < num && t < maxTracks; t++) {
                 int val;
                 if (!parse.number(val)) return false;
-                alg->trackStates[t].shufflePos = (uint8_t)val;
+                alg->trackStates[t].shufflePos = (uint8_t)clampParam(val, 1, MAX_STEPS);
             }
             for (int t = maxTracks; t < num; t++) {
                 int val;
@@ -182,7 +187,7 @@ bool deserialiseData(MidiLooperAlgorithm* alg, _NT_jsonParse& parse) {
             for (int t = 0; t < num && t < maxTracks; t++) {
                 int val;
                 if (!parse.number(val)) return false;
-                alg->trackStates[t].brownianPos = (uint8_t)val;
+                alg->trackStates[t].brownianPos = (uint8_t)clampParam(val, 1, MAX_STEPS);
             }
             for (int t = maxTracks; t < num; t++) {
                 int val;
