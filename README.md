@@ -179,31 +179,6 @@ make clean       # Clean build artifacts
 make help        # Show all options
 ```
 
-## Deploying to Hardware
-
-### Option 1: Direct MIDI Push
-
-```bash
-make push
-```
-
-Requires ntpush utility and MIDI connection to disting NT.
-
-### Option 2: SD Card
-
-1. `make hardware`
-2. Copy the `.o` file from `plugins/` to the disting NT's SD card `plugins/` folder
-3. Restart or rescan plugins on the disting NT
-
-## Creating Releases
-
-Push a version tag to trigger the GitHub Action:
-
-```bash
-git tag v1.0.0
-git push origin v1.0.0
-```
-
 ## API Reference
 
 - [distingNT API Documentation](https://github.com/expertsleepersltd/distingNT_API)
