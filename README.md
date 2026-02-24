@@ -1,6 +1,6 @@
 # MIDI Looper
 
-A multi-track MIDI step recorder/sequencer plugin for the Expert Sleepers disting NT eurorack module. Records MIDI note input and plays it back with multiple playback directions, probability-based modifiers, trig conditions, and algorithmic sequence generation.
+A multi-track MIDI looper plugin for the Expert Sleepers disting NT eurorack module. Supports live recording, step recording, and algorithmic sequence generation with multiple playback directions, probability-based modifiers, and trig conditions.
 
 ## Features
 
