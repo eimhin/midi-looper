@@ -170,17 +170,10 @@ sudo apt install gcc-arm-none-eabi
 **Windows:**
 Download from [ARM Developer](https://developer.arm.com/tools-and-software/open-source-software/developer-tools/gnu-toolchain/gnu-rm/downloads)
 
-### nt_emu (for testing)
-
-For testing without hardware, use the nt_emu VCV Rack module:
-https://github.com/expertsleepersltd/nt_emu
-
 ## Build Commands
 
 ```bash
 make hardware    # Build for disting NT hardware
-make test        # Build for nt_emu testing
-make both        # Build both targets
 make push        # Build and push to disting NT via MIDI
 make clean       # Clean build artifacts
 make help        # Show all options

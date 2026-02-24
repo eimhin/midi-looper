@@ -1,4 +1,3 @@
-#ifdef DISTING_HARDWARE
 #include "serial.h"
 #include "midi.h"
 
@@ -129,11 +128,7 @@ bool deserialiseData(MidiLooperAlgorithm* alg, _NT_jsonParse& parse) {
                             }
                         }
                     } else {
-#ifdef DISTING_HARDWARE
                         if (!parse.skipMember()) return false;
-#else
-                        return false;
-#endif
                     }
                 }
             }
@@ -142,11 +137,7 @@ bool deserialiseData(MidiLooperAlgorithm* alg, _NT_jsonParse& parse) {
                 int numTrackMembers;
                 if (!parse.numberOfObjectMembers(numTrackMembers)) return false;
                 for (int tm = 0; tm < numTrackMembers; tm++) {
-#ifdef DISTING_HARDWARE
                     if (!parse.skipMember()) return false;
-#else
-                    return false;
-#endif
                 }
             }
         } else if (parse.matchName("shuffleOrder")) {
@@ -198,14 +189,9 @@ bool deserialiseData(MidiLooperAlgorithm* alg, _NT_jsonParse& parse) {
                 if (!parse.number(val)) return false;
             }
         } else {
-#ifdef DISTING_HARDWARE
             if (!parse.skipMember()) return false;
-#else
-            return false;
-#endif
         }
     }
 
     return true;
 }
-#endif // DISTING_HARDWARE

@@ -487,13 +487,11 @@ void midiMessage(_NT_algorithm* self, uint8_t byte0, uint8_t byte1, uint8_t byte
 
 bool draw(_NT_algorithm* self) { return drawUI((MidiLooperAlgorithm*)self); }
 
-#ifdef DISTING_HARDWARE
 void serialise(_NT_algorithm* self, _NT_jsonStream& stream) { serialiseData((MidiLooperAlgorithm*)self, stream); }
 
 bool deserialise(_NT_algorithm* self, _NT_jsonParse& parse) {
     return deserialiseData((MidiLooperAlgorithm*)self, parse);
 }
-#endif
 
 // ============================================================================
 // FACTORY DEFINITION
@@ -518,13 +516,8 @@ static const _NT_factory factory = {
     .hasCustomUi = NULL,
     .customUi = NULL,
     .setupUi = NULL,
-#ifdef DISTING_HARDWARE
     .serialise = serialise,
     .deserialise = deserialise,
-#else
-    .serialise = NULL,
-    .deserialise = NULL,
-#endif
     .midiSysEx = NULL,
     .parameterUiPrefix = NULL,
     .parameterString = NULL,
