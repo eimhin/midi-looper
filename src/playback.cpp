@@ -107,6 +107,12 @@ void handleTransportStop(MidiLooperAlgorithm* alg) {
     }
 
     dtc->transportState = transportTransition_Stop(dtc->transportState);
+
+    // Send precise note-offs using stored per-note channel/dest,
+    // then CC 123 on current channels as a safety net
+    for (int t = 0; t < alg->numTracks; t++) {
+        sendTrackNotesOff(alg, t);
+    }
     sendAllNotesOff(alg);
 
     for (int t = 0; t < alg->numTracks; t++) {
@@ -116,18 +122,8 @@ void handleTransportStop(MidiLooperAlgorithm* alg) {
         ts->divCounter = 0;
         ts->loopCount = 0;
 
-        for (int n = 0; n < 128; n++) {
-            ts->activeNotes[n] = 0;
-            ts->playing[n].active = false;
-        }
-        ts->activeVel = 0;
-
         ts->brownianPos = 1;
         ts->shufflePos = 1;
-    }
-
-    for (int i = 0; i < MAX_DELAYED_NOTES; i++) {
-        alg->delayedNotes[i].active = false;
     }
 
     dtc->stepTime = 0.0f;
@@ -147,14 +143,24 @@ void processDelayedNotes(MidiLooperAlgorithm* alg, float dt) {
         if (!dn->active) continue;
 
         if (dn->delay <= (uint16_t)delayDecrement) {
-            NT_sendMidi3ByteMessage(dn->where, withChannel(kMidiNoteOn, dn->outCh), dn->note, dn->velocity);
-
             // Safe access - dn->track/note are stored values that could be invalid
             int track = safeTrackIndex(dn->track);
             int note = safeNoteIndex(dn->note);
             TrackState* ts = &alg->trackStates[track];
-            ts->playing[note].active = true;
-            ts->playing[note].remaining = dn->duration;
+
+            // If re-triggering on a different channel/dest, release the old note first
+            PlayingNote* existing = &ts->playing[note];
+            if (existing->active && (existing->outCh != dn->outCh || existing->where != dn->where)) {
+                if (!isNoteSharedByOtherTrack(alg, track, (uint8_t)note, existing->outCh, existing->where)) {
+                    NT_sendMidi3ByteMessage(existing->where, withChannel(kMidiNoteOff, existing->outCh), (uint8_t)note, 0);
+                }
+            }
+
+            NT_sendMidi3ByteMessage(dn->where, withChannel(kMidiNoteOn, dn->outCh), dn->note, dn->velocity);
+            existing->active = true;
+            existing->remaining = dn->duration;
+            existing->outCh = dn->outCh;
+            existing->where = dn->where;
             ts->activeNotes[note] = dn->velocity;
             ts->activeVel = dn->velocity;
 
@@ -193,7 +199,7 @@ static bool scheduleDelayedNote(MidiLooperAlgorithm* alg, uint8_t note, uint8_t 
 // ============================================================================
 
 // Process note duration countdowns for a track
-static void processNoteDurations(MidiLooperAlgorithm* alg, int track, uint32_t where, int outCh) {
+static void processNoteDurations(MidiLooperAlgorithm* alg, int track) {
     TrackState* ts = &alg->trackStates[track];
 
     for (int n = 0; n < 128; n++) {
@@ -201,7 +207,9 @@ static void processNoteDurations(MidiLooperAlgorithm* alg, int track, uint32_t w
         if (!pn->active) continue;
 
         if (pn->remaining <= 1) {
-            NT_sendMidi3ByteMessage(where, withChannel(kMidiNoteOff, outCh), (uint8_t)n, 0);
+            if (!isNoteSharedByOtherTrack(alg, track, (uint8_t)n, pn->outCh, pn->where)) {
+                NT_sendMidi3ByteMessage(pn->where, withChannel(kMidiNoteOff, pn->outCh), (uint8_t)n, 0);
+            }
             pn->active = false;
             ts->activeNotes[n] = 0;
 
@@ -257,22 +265,9 @@ static int calculateTrackStep(MidiLooperAlgorithm* alg, int track, int loopLen, 
 // PANIC / ALL NOTES OFF
 // ============================================================================
 
-// Clear all notes and state (panic)
-static void handlePanicOnWrap(MidiLooperAlgorithm* alg) {
-    sendAllNotesOff(alg);
-
-    for (int t = 0; t < alg->numTracks; t++) {
-        TrackState* ts = &alg->trackStates[t];
-        for (int n = 0; n < 128; n++) {
-            ts->playing[n].active = false;
-            ts->activeNotes[n] = 0;
-        }
-        ts->activeVel = 0;
-    }
-
-    for (int i = 0; i < MAX_DELAYED_NOTES; i++) {
-        alg->delayedNotes[i].active = false;
-    }
+// Clear notes and state for the wrapping track only (scoped panic)
+static void handlePanicOnWrap(MidiLooperAlgorithm* alg, int track) {
+    sendTrackNotesOff(alg, track);
 }
 
 // ============================================================================
@@ -323,9 +318,18 @@ static void emitNote(MidiLooperAlgorithm* alg, int track, NoteEvent* ev,
     int delay = (humanize > 0) ? randRange(ts->randState, 0, humanize) : 0;
 
     if (delay == 0) {
+        // If re-triggering on a different channel/dest, release the old note first
+        PlayingNote* existing = &ts->playing[actualNote];
+        if (existing->active && (existing->outCh != (uint8_t)outCh || existing->where != where)) {
+            if (!isNoteSharedByOtherTrack(alg, track, (uint8_t)actualNote, existing->outCh, existing->where)) {
+                NT_sendMidi3ByteMessage(existing->where, withChannel(kMidiNoteOff, existing->outCh), (uint8_t)actualNote, 0);
+            }
+        }
         NT_sendMidi3ByteMessage(where, withChannel(kMidiNoteOn, outCh), (uint8_t)actualNote, (uint8_t)velocity);
-        ts->playing[actualNote].active = true;
-        ts->playing[actualNote].remaining = ev->duration;
+        existing->active = true;
+        existing->remaining = ev->duration;
+        existing->outCh = (uint8_t)outCh;
+        existing->where = where;
         ts->activeNotes[actualNote] = (uint8_t)velocity;
         ts->activeVel = (uint8_t)velocity;
     } else {
@@ -394,12 +398,12 @@ void processTrack(MidiLooperAlgorithm* alg, int track, bool panicOnWrap) {
     uint32_t where = destToWhere(tp.destination());
 
     // Process note durations first (independent of step calculation)
-    processNoteDurations(alg, track, where, outCh);
+    processNoteDurations(alg, track);
 
     // Handle track enable/disable transitions
     bool enabled = tp.enabled();
     if (!enabled && ts->lastEnabled == 1) {
-        sendTrackNotesOff(alg, track, where, outCh);
+        sendTrackNotesOff(alg, track);
     }
     ts->lastEnabled = enabled ? 1 : 0;
 
@@ -425,7 +429,7 @@ void processTrack(MidiLooperAlgorithm* alg, int track, bool panicOnWrap) {
         ts->loopCount++;
     }
     if (wrapped && panicOnWrap) {
-        handlePanicOnWrap(alg);
+        handlePanicOnWrap(alg, track);
     }
 
     // Emit notes for the calculated step(s), gated by trig conditions

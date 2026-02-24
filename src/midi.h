@@ -9,7 +9,8 @@
 
 // MIDI output helpers
 void sendAllNotesOff(MidiLooperAlgorithm* alg);
-void sendTrackNotesOff(MidiLooperAlgorithm* alg, int track, uint32_t where, int outCh);
+void sendTrackNotesOff(MidiLooperAlgorithm* alg, int track);
+bool isNoteSharedByOtherTrack(MidiLooperAlgorithm* alg, int track, uint8_t note, uint8_t outCh, uint32_t where);
 
 // Track event helpers
 void clearTrackEvents(TrackData* track);

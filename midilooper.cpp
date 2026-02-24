@@ -95,6 +95,9 @@ _NT_algorithm* construct(const _NT_algorithmMemoryPtrs& ptrs, const _NT_algorith
 
         // Clear playing notes
         for (int n = 0; n < 128; n++) {
+            ts->playing[n].where = 0;
+            ts->playing[n].remaining = 0;
+            ts->playing[n].outCh = 0;
             ts->playing[n].active = false;
             ts->activeNotes[n] = 0;
         }
@@ -251,9 +254,7 @@ void step(_NT_algorithm* self, float* busFrames, int numFramesBy4) {
     if (clearTrack != dtc->lastClearTrack) {
         if (clearTrack == 1) {
             int track = clampParam(v[kParamRecTrack], 0, alg->numTracks - 1);
-            TrackParams tp = TrackParams::fromAlgorithm(v, track);
-            uint32_t where = destToWhere(tp.destination());
-            sendTrackNotesOff(alg, track, where, tp.channel());
+            sendTrackNotesOff(alg, track);
             clearTrackEvents(&alg->trackStates[track].data);
         }
         dtc->lastClearTrack = clearTrack;
@@ -264,9 +265,7 @@ void step(_NT_algorithm* self, float* busFrames, int numFramesBy4) {
     if (clearAll != dtc->lastClearAll) {
         if (clearAll == 1) {
             for (int t = 0; t < alg->numTracks; t++) {
-                TrackParams tp = TrackParams::fromAlgorithm(v, t);
-                uint32_t where = destToWhere(tp.destination());
-                sendTrackNotesOff(alg, t, where, tp.channel());
+                sendTrackNotesOff(alg, t);
                 clearTrackEvents(&alg->trackStates[t].data);
             }
         }

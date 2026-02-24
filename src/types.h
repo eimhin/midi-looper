@@ -361,9 +361,11 @@ struct DelayedNote {
 };
 
 // Playing note (tracking duration countdown)
+// Indexed by note number in TrackState::playing[128]
 struct PlayingNote {
-    uint8_t note;
+    uint32_t where;      // Destination note was sent to
     uint16_t remaining;  // Remaining duration in clock ticks
+    uint8_t outCh;       // Channel note was sent on
     bool active;
 };
 

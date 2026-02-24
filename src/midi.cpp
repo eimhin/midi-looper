@@ -14,17 +14,38 @@ void sendAllNotesOff(MidiLooperAlgorithm* alg) {
     }
 }
 
-void sendTrackNotesOff(MidiLooperAlgorithm* alg, int track, uint32_t where, int outCh) {
+void sendTrackNotesOff(MidiLooperAlgorithm* alg, int track) {
     TrackState* ts = &alg->trackStates[track];
 
     for (int n = 0; n < 128; n++) {
-        if (ts->activeNotes[n] > 0) {
-            NT_sendMidi3ByteMessage(where, withChannel(kMidiNoteOff, outCh), (uint8_t)n, 0);
+        PlayingNote* pn = &ts->playing[n];
+        if (pn->active) {
+            if (!isNoteSharedByOtherTrack(alg, track, (uint8_t)n, pn->outCh, pn->where)) {
+                NT_sendMidi3ByteMessage(pn->where, withChannel(kMidiNoteOff, pn->outCh), (uint8_t)n, 0);
+            }
         }
         ts->activeNotes[n] = 0;
-        ts->playing[n].active = false;
+        pn->active = false;
     }
     ts->activeVel = 0;
+
+    // Cancel any pending delayed notes for this track
+    for (int i = 0; i < MAX_DELAYED_NOTES; i++) {
+        if (alg->delayedNotes[i].active && alg->delayedNotes[i].track == (uint8_t)track) {
+            alg->delayedNotes[i].active = false;
+        }
+    }
+}
+
+bool isNoteSharedByOtherTrack(MidiLooperAlgorithm* alg, int track, uint8_t note, uint8_t outCh, uint32_t where) {
+    for (int t = 0; t < alg->numTracks; t++) {
+        if (t == track) continue;
+        PlayingNote* pn = &alg->trackStates[t].playing[note];
+        if (pn->active && pn->outCh == outCh && pn->where == where) {
+            return true;
+        }
+    }
+    return false;
 }
 
 // ============================================================================

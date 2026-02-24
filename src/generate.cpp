@@ -234,9 +234,7 @@ static void generateInvert(MidiLooperAlgorithm* alg, int track) {
 void executeGenerate(MidiLooperAlgorithm* alg, int track) {
     if (track < 0 || track >= alg->numTracks) return;
 
-    TrackParams tp = TrackParams::fromAlgorithm(alg->v, track);
-    uint32_t where = destToWhere(tp.destination());
-    sendTrackNotesOff(alg, track, where, tp.channel());
+    sendTrackNotesOff(alg, track);
 
     int mode = alg->v[kParamGenMode];
     switch (mode) {
