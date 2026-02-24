@@ -29,6 +29,7 @@ OUTPUT_DIR = plugins
 BUILD_DIR = build
 OUTPUT = $(OUTPUT_DIR)/$(PLUGIN_NAME).o
 OBJECTS = $(patsubst %.cpp, $(BUILD_DIR)/%.o, $(SOURCES))
+DEV ?= 0
 
 all: $(OUTPUT)
 
@@ -44,7 +45,7 @@ $(BUILD_DIR)/%.o: %.cpp
 hardware: all
 
 push: hardware
-	ntpush $(OUTPUT_DIR)/$(PLUGIN_NAME).o
+	ntpush $(DEV) $(OUTPUT_DIR)/$(PLUGIN_NAME).o
 
 check: $(OUTPUT)
 	@echo "Checking symbols in $(OUTPUT)..."

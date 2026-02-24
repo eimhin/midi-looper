@@ -93,7 +93,7 @@ static const _NT_parameter parameters[] = {
     // Global parameters (2-10)
     {.name = "Record", .min = 0, .max = 1, .def = 0, .unit = kNT_unitEnum, .scaling = 0, .enumStrings = recordStrings},
     {.name = "Rec Track", .min = 0, .max = 7, .def = 0, .unit = kNT_unitEnum, .scaling = 0, .enumStrings = recTrackStrings},
-    {.name = "Division", .min = 0, .max = 4, .def = 0, .unit = kNT_unitEnum, .scaling = 0, .enumStrings = divisionStrings},
+    {.name = "Rec Division", .min = 0, .max = 4, .def = 0, .unit = kNT_unitEnum, .scaling = 0, .enumStrings = divisionStrings},
     {.name = "Rec Mode", .min = 0, .max = 2, .def = 0, .unit = kNT_unitEnum, .scaling = 0, .enumStrings = recModeStrings},
     {.name = "Rec Snap", .min = 50, .max = 100, .def = 75, .unit = kNT_unitPercent, .scaling = 0, .enumStrings = NULL},
     {.name = "MIDI In Ch", .min = 0, .max = 16, .def = 1, .unit = kNT_unitNone, .scaling = 0, .enumStrings = NULL},

@@ -1,16 +1,16 @@
 # MIDI Looper
 
-A multi-track MIDI step recorder/sequencer plugin for the Expert Sleepers disting NT eurorack module. Records MIDI note input and plays it back with 12 playback directions, probability-based modifiers, trig conditions, and algorithmic sequence generation.
+A multi-track MIDI step recorder/sequencer plugin for the Expert Sleepers disting NT eurorack module. Records MIDI note input and plays it back with multiple playback directions, probability-based modifiers, trig conditions, and algorithmic sequence generation.
 
 ## Features
 
 ### Tracks
 
-- 1-4 independently configurable tracks (set via specification, default 4)
+- 1-8 independently configurable tracks (set via specification)
 - Up to 128 steps per track
 - Up to 8 polyphonic note events per step
 - Independent length, direction, clock division, channel, and modifiers per track
-- Track 1 enabled by default, tracks 2-4 disabled
+- Track 1 enabled by default, remaining tracks disabled
 
 ### CV Inputs
 
@@ -20,9 +20,9 @@ A multi-track MIDI step recorder/sequencer plugin for the Expert Sleepers distin
 ### Recording
 
 - **Record**: Toggle recording on/off
-- **Rec Track**: Select which track to record into (1-4)
+- **Rec Track**: Select which track to record into
 - **Rec Mode**: Replace (clears track first), Overdub (adds to existing events), or Step (transport-independent step entry)
-- **Division**: Global quantization grid for recording: 1 (off), 2, 4, 8, or 16
+- **Rec Division**: Global quantization grid for recording: 1 (off), 2, 4, 8, or 16
 - **Rec Snap**: Quantization snap threshold (50-100%, default 75%). Controls how aggressively notes snap to the quantization grid.
 - Records note on/off and velocity. Does not record pitch bend or CC.
 - Tracks up to 128 simultaneous held notes during recording
@@ -32,7 +32,7 @@ A multi-track MIDI step recorder/sequencer plugin for the Expert Sleepers distin
 
 Applied during recording — events are snapped to the grid as they are recorded.
 
-- **Division**: Global quantization grid: 1 (off), 2, 4, 8, or 16
+- **Rec Division**: Global quantization grid: 1 (off), 2, 4, 8, or 16
 - Finds the largest valid divisor that evenly divides the track length
 - Note duration is snapped to the nearest grid point (minimum one grid unit)
 
@@ -53,7 +53,6 @@ Each track has an independent direction setting:
 | Reverse   | Backward linear                                    |
 | Pendulum  | Bounces at endpoints without repeating them        |
 | Ping-Pong | Bounces at endpoints, repeating them               |
-| Stride    | Skips by a configurable stride size (2-16)         |
 | Odd/Even  | Plays all odd-numbered steps, then all even        |
 | Hopscotch | Alternating forward and backward single steps      |
 | Converge  | Step pairs converge toward the center              |
@@ -61,6 +60,7 @@ Each track has an independent direction setting:
 | Brownian  | Random walk from current position (delta -2 to +2) |
 | Random    | Fully random step selection (stateless)            |
 | Shuffle   | Randomized order without repetition (Fisher-Yates) |
+| Stride 2-5 | Skips by a fixed stride size (2, 3, 4, or 5)    |
 
 Brownian and Shuffle are stateful and reset on transport start.
 
@@ -96,11 +96,10 @@ Per-track controls for conditional step playback:
 
 Per-track probabilistic pitch transposition with rhythmic bypass:
 
-- **Oct Up** (0-4): Maximum upward octave shift
-- **Oct Down** (0-4): Maximum downward octave shift
+- **Oct Min** (-3 to 3): Minimum octave shift
+- **Oct Max** (-3 to 3): Maximum octave shift
 - **Oct Prob** (0-100%): Probability of applying an octave shift per note
 - **Oct Bypass** (0-64): Number of notes to play unshifted before applying octave jumps
-- **Bypass Offset** (-24 to +24): Semitone offset applied during the bypass period
 
 ### Sequence Generation
 
@@ -127,7 +126,7 @@ Generated notes respect the active scale quantization settings.
 - **Channel**: Per-track MIDI output channel (1-16, defaults to track number + 1)
 - **Velocity**: Offset applied to recorded velocity (-64 to +64)
 - **Humanize**: Random delay per note (0-100ms)
-- **MIDI Out Dest**: Breakout, SelectBus, USB, Internal, or All
+- **Destination**: Breakout, SelectBus, USB, Internal, or All
 - **Panic On Wrap**: Send all-notes-off when a track's loop wraps around
 - Notes from the input channel are passed through to the output
 
@@ -176,7 +175,6 @@ Download from [ARM Developer](https://developer.arm.com/tools-and-software/open-
 make hardware    # Build for disting NT hardware
 make push        # Build and push to disting NT via MIDI
 make clean       # Clean build artifacts
-make help        # Show all options
 ```
 
 ## API Reference
