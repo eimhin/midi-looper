@@ -76,9 +76,9 @@ static_assert(MAX_EVENTS_PER_STEP <= 255, "MAX_EVENTS_PER_STEP must fit in uint8
 static_assert(MAX_TRACKS <= 255, "MAX_TRACKS must fit in uint8_t");
 static_assert(MAX_DELAYED_NOTES <= 65535, "MAX_DELAYED_NOTES must fit in uint16_t");
 
-// Ensure parameter indices fit in uint8_t (required by distingNT API _NT_parameterPage::params)
-static_assert(GLOBAL_PARAMS - 1 + PARAMS_PER_TRACK * MAX_TRACKS <= 255,
-              "Max parameter index exceeds uint8_t (required by distingNT API _NT_parameterPage::params)");
+// Ensure parameter indices fit within distingNT API limit (242 max parameters)
+static_assert(GLOBAL_PARAMS - 1 + PARAMS_PER_TRACK * MAX_TRACKS <= 242,
+              "Max parameter index exceeds distingNT API limit of 242");
 
 // Ensure Brownian delta range is sensible
 static_assert(BROWNIAN_DELTA_MIN < BROWNIAN_DELTA_MAX, "Brownian delta range is invalid");
