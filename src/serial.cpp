@@ -230,7 +230,7 @@ bool deserialiseData(MidiLooperAlgorithm* alg, _NT_jsonParse& parse) {
         if (parse.matchName("version")) {
             int version;
             if (!parse.number(version)) return false;
-            (void)version;
+            if (version > SERIAL_VERSION) return false;
         } else if (parse.matchName("numTracks")) {
             int savedTracks;
             if (!parse.number(savedTracks)) return false;
