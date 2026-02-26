@@ -1,23 +1,13 @@
 # MIDI Looper
 
-A multi-track MIDI looper plugin for the Expert Sleepers disting NT eurorack module. Supports live recording, step recording, and algorithmic sequence generation with multiple playback directions, probability-based modifiers, and trig conditions.
+A multi-track MIDI looper plugin for the Expert Sleepers disting NT eurorack module. Supports live recording, step recording, and sequence generation.
 
-## Features
-
-### Tracks
-
-- 1-8 independently configurable tracks (set via specification)
-- Up to 128 steps per track
-- Up to 8 polyphonic note events per step
-- Independent length, direction, clock division, channel, and modifiers per track
-- Track 1 enabled by default, remaining tracks disabled
-
-### CV Inputs
+## CV Inputs
 
 - **Run (In1)**: Gate input. Rising edge resets position and starts playback. Falling edge stops.
 - **Clock (In2)**: Trigger input. Each rising edge advances the step position.
 
-### Recording
+## Recording
 
 - **Record**: Toggle recording on/off
 - **Rec Track**: Select which track to record into
@@ -25,23 +15,27 @@ A multi-track MIDI looper plugin for the Expert Sleepers disting NT eurorack mod
 - **Rec Division**: Global quantization grid for recording: 1 (off), 2, 4, 8, or 16
 - **Rec Snap**: Quantization snap threshold (50-100%, default 75%). Controls how aggressively notes snap to the quantization grid.
 - Records note on/off and velocity. Does not record pitch bend or CC.
-- Tracks up to 128 simultaneous held notes during recording
-- Held notes are finalized when recording stops
 
-### Quantization
-
-Applied during recording — events are snapped to the grid as they are recorded.
-
-- **Rec Division**: Global quantization grid: 1 (off), 2, 4, 8, or 16
-- Finds the largest valid divisor that evenly divides the track length
-- Note duration is snapped to the nearest grid point (minimum one grid unit)
+Events are snapped to the grid as they are recorded. The grid adapts to the track length, and note duration is snapped to the nearest grid point (minimum one grid unit).
 
 ### Scale Quantization
 
-Applied at input before pass-through and recording. All incoming MIDI notes are quantized to the selected scale.
-
 - **Scale Root**: C, C#, D, Eb, E, F, F#, G, Ab, A, Bb, B
 - **Scale**: Off, Ionian, Dorian, Phrygian, Lydian, Mixolydian, Aeolian, Locrian, Harmonic Minor, Melodic Minor, Major Pentatonic, Minor Pentatonic
+
+## Tracks
+
+- 1-8 independently configurable tracks (set via specification)
+- Up to 128 steps per track
+- Up to 8 polyphonic note events per step
+- Independent length, direction, clock division, channel, and modifiers per track
+- **Clear Track**: Clear all events on the active recording track
+- **Clear All**: Clear all events on all tracks
+- **MIDI In Ch**: Input channel filter (0 = omni, 1-16 for a specific channel; default 1)
+
+### Playback Division
+
+Each track has an independent clock divider (1-16). A division of N means the track advances once every N incoming clock pulses, allowing polymetric patterns.
 
 ### Playback Directions
 
@@ -57,35 +51,22 @@ Each track has an independent direction setting:
 | Hopscotch | Alternating forward and backward single steps      |
 | Converge  | Step pairs converge toward the center              |
 | Diverge   | Step pairs diverge from the center                 |
-| Brownian  | Random walk from current position (delta -2 to +2) |
-| Random    | Fully random step selection (stateless)            |
-| Shuffle   | Randomized order without repetition (Fisher-Yates) |
+| Brownian  | Wanders randomly from current position             |
+| Random    | Fully random step selection                        |
+| Shuffle   | Plays every step once in random order              |
 | Stride 2-5 | Skips by a fixed stride size (2, 3, 4, or 5)    |
 
-Brownian and Shuffle are stateful and reset on transport start.
+### Modifiers
 
-### Per-Track Clock Division
-
-Each track has an independent clock divider (1-16). A division of N means the track advances once every N incoming clock pulses, allowing polymetric patterns.
-
-### Continuous Modifiers
-
-Probability-based transformations applied in this fixed order to the step chosen by the direction mode:
+Applied in order to the current step:
 
 1. **Stability** (0-100%): Probability to hold the current step instead of advancing
 2. **Motion** (0-100%): Random jitter applied to step position
 3. **Randomness** (0-100%): Probability to jump to a completely random step
 4. **Pedal** (0-100%): Probability to return to the **Pedal Step** (1-128)
-
-### Binary Modifiers
-
-Deterministic filters applied after continuous modifiers:
-
 - **No Repeat**: Skip if the resulting step is the same as the previous one
 
 ### Trig Conditions & Step Probability
-
-Per-track controls for conditional step playback:
 
 - **Step Prob** (0-100%): Global probability that any step plays
 - **Step Cond**: Trig condition applied to all steps (Always, 1:2, 2:2, ..., 1:8-8:8, inverted variants, First, !First, Fill, !Fill, Fixed)
@@ -94,32 +75,12 @@ Per-track controls for conditional step playback:
 
 ### Octave Jump
 
-Per-track probabilistic pitch transposition with rhythmic bypass:
+Random octave shifts per note:
 
 - **Oct Min** (-3 to 3): Minimum octave shift
 - **Oct Max** (-3 to 3): Maximum octave shift
 - **Oct Prob** (0-100%): Probability of applying an octave shift per note
-- **Oct Bypass** (0-64): Number of notes to play unshifted before applying octave jumps
-
-### Sequence Generation
-
-Algorithmic pattern generation and transformation, applied to the active recording track:
-
-- **Generate**: Trigger generation
-- **Gen Mode**:
-  - **New**: Generate a fresh monophonic pattern from scratch
-  - **Reorder**: Shuffle existing note positions (Fisher-Yates), preserving rhythm
-  - **Re-pitch**: Replace note values with new random pitches, keeping rhythm and velocity
-  - **Invert**: Reverse the step sequence in-place
-- **Density** (1-100%): Probability of placing a note on each grid position
-- **Bias** (MIDI note): Center pitch for generated notes
-- **Range** (0-48 semitones): Pitch spread around bias
-- **Note Rand** (0-100%): How much pitch varies within the range
-- **Vel Var** (0-100%): Velocity variation around center (100)
-- **Ties** (0-100%): Probability of extending a note's duration to reach the next note
-- **Gate Rand** (0-100%): Random shortening of note durations
-
-Generated notes respect the active scale quantization settings.
+- **Oct Bypass** (0-64): Every Nth note is unshifted (0 = off)
 
 ### Output
 
@@ -128,25 +89,40 @@ Generated notes respect the active scale quantization settings.
 - **Humanize**: Random delay per note (0-100ms)
 - **Destination**: Breakout, SelectBus, USB, Internal, or All
 - **Panic On Wrap**: Send all-notes-off when a track's loop wraps around
-- Notes from the input channel are passed through to the output
+> **Note:** MIDI input is passed through so you can play live alongside the sequencer, unless the input and output channels match.
 
-### Track Management
+## Sequence Generation
 
-- **Clear Track**: Clear all events on the active recording track
-- **Clear All**: Clear all events on all tracks
-- **MIDI In Ch**: Input channel filter (0 = omni, 1-16 for a specific channel; default 1)
+Generate or transform patterns on the active recording track:
 
-### Display
+- **Generate**: Trigger generation
+- **Gen Mode**:
+  - **New**: Generate a fresh monophonic pattern from scratch
+  - **Reorder**: Shuffle existing note positions, preserving rhythm
+  - **Re-pitch**: Replace note values with new random pitches, keeping rhythm and velocity
+  - **Invert**: Reverse the step sequence
+- **Density** (1-100%): Probability of placing a note on each grid position
+- **Bias** (MIDI note): Center pitch for generated notes
+- **Range** (0-48 semitones): Pitch spread around bias
+- **Note Rand** (0-100%): How much pitch varies within the range
+- **Vel Var** (0-100%): Velocity variation around center (100)
+- **Ties** (0-100%): Probability of extending a note's duration to reach the next note
+- **Gate Rand** (0-100%): Random shortening of note durations
+
+Generated notes follow the active scale quantization.
+
+## Display
 
 - Play/stop and record indicators
-- Quantization grid visualization (up to 16 divisions)
+- Step recording position number
+- Recording division metronome indicator
 - Input velocity meter
 - Per-track output velocity meters
-- Track info boxes showing current step, loop length, and recording status
+- Track info boxes with position indicator and recording track highlight
 
-### State Persistence
+## Presets
 
-Track data and playback state are saved/loaded with presets via JSON serialization.
+Track data and playback state are saved/loaded with presets.
 
 ## Prerequisites
 
