@@ -308,6 +308,7 @@ void step(_NT_algorithm* self, float* busFrames, int numFramesBy4) {
         case REC_IDLE:
             if (recordChanged && record == 1) {
                 if (isStepMode) {
+                    clearTrackEvents(&alg->trackStates[recTrack].data);
                     dtc->stepRecPos = 1;
                     dtc->recordState = REC_STEP;
                 } else if (transportIsRunning(dtc->transportState)) {
@@ -328,6 +329,7 @@ void step(_NT_algorithm* self, float* busFrames, int numFramesBy4) {
             } else if (isStepMode) {
                 // Mode changed to Step while live recording
                 finalizeHeldNotes(alg);
+                clearTrackEvents(&alg->trackStates[recTrack].data);
                 dtc->stepRecPos = 1;
                 dtc->recordState = REC_STEP;
             }
@@ -356,6 +358,7 @@ void step(_NT_algorithm* self, float* busFrames, int numFramesBy4) {
                 dtc->recordState = REC_IDLE;
             } else if (isStepMode) {
                 // Mode changed to Step while pending
+                clearTrackEvents(&alg->trackStates[recTrack].data);
                 dtc->stepRecPos = 1;
                 dtc->recordState = REC_STEP;
             } else if (transportIsRunning(dtc->transportState)) {
