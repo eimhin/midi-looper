@@ -142,14 +142,14 @@ static constexpr int UI_TRACK_WIDTH = 65;
 static constexpr int UI_TRACK_BOX_WIDTH = 56;
 
 // Track boxes - Row 1 (tracks 1-4)
-static constexpr int UI_TRACK_ROW1_TOP = 35;
-static constexpr int UI_TRACK_ROW1_BOTTOM = 45;
-static constexpr int UI_TRACK_ROW1_TEXT_Y = 43;
+static constexpr int UI_TRACK_ROW1_TOP = 38;
+static constexpr int UI_TRACK_ROW1_BOTTOM = 48;
+static constexpr int UI_TRACK_ROW1_TEXT_Y = 47;
 
 // Track boxes - Row 2 (tracks 5-8)
-static constexpr int UI_TRACK_ROW2_TOP = 47;
-static constexpr int UI_TRACK_ROW2_BOTTOM = 57;
-static constexpr int UI_TRACK_ROW2_TEXT_Y = 55;
+static constexpr int UI_TRACK_ROW2_TOP = 51;
+static constexpr int UI_TRACK_ROW2_BOTTOM = 61;
+static constexpr int UI_TRACK_ROW2_TEXT_Y = 60;
 static constexpr int UI_CHAR_WIDTH = 6;
 static constexpr int UI_BRIGHTNESS_MAX = 15;
 static constexpr int UI_BRIGHTNESS_DIM = 1;

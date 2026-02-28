@@ -111,7 +111,7 @@ bool drawUI(MidiLooperAlgorithm* alg) {
     if (dtc->recordState == REC_STEP && dtc->stepRecPos > 0) {
         char buf[8];
         NT_intToString(buf, dtc->stepRecPos);
-        NT_drawText(UI_REC_CENTER_X + UI_REC_RADIUS + 3, UI_VEL_BAR_TOP + 3, buf, UI_BRIGHTNESS_MAX, kNT_textLeft, kNT_textNormal);
+        NT_drawText(UI_REC_CENTER_X + UI_REC_RADIUS + 5, UI_VEL_BAR_TOP + 8, buf, UI_BRIGHTNESS_MAX, kNT_textLeft, kNT_textNormal);
     }
 
     // 4-beat metronome indicator
