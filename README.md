@@ -16,12 +16,34 @@ A multi-track MIDI looper plugin for the Expert Sleepers disting NT eurorack mod
 - **Rec Snap**: Quantization snap threshold (50-100%, default 75%). Controls how aggressively notes snap to the quantization grid.
 - Records note on/off and velocity. Does not record pitch bend or CC.
 
-Events are snapped to the grid as they are recorded. The grid adapts to the track length, and note duration is snapped to the nearest grid point (minimum one grid unit).
+Both live recording and step recording use the record division to determine the quantization grid. In live recording, incoming notes are snapped to the nearest grid position as they arrive. In step recording, the cursor advances by one grid unit per note entered. The grid adapts to the track length, and note duration is snapped to the nearest grid point (minimum one grid unit).
+
+*Note that the record division is independent of the track length and playback division. A track with 32 steps and a record division of 8 has 4 recordable grid positions, but all 32 steps are still available for playback. Similarly, the playback division controls how many clock pulses advance the track by one step — it does not affect the recording grid.*
 
 ### Scale Quantization
 
 - **Scale Root**: C, C#, D, Eb, E, F, F#, G, Ab, A, Bb, B
 - **Scale**: Off, Ionian, Dorian, Phrygian, Lydian, Mixolydian, Aeolian, Locrian, Harmonic Minor, Melodic Minor, Major Pentatonic, Minor Pentatonic
+
+## Sequence Generation
+
+Generate or transform patterns on the active recording track:
+
+- **Generate**: Trigger generation
+- **Gen Mode**:
+  - **New**: Generate a fresh monophonic pattern from scratch
+  - **Reorder**: Shuffle existing note positions, preserving rhythm
+  - **Re-pitch**: Replace note values with new random pitches, keeping rhythm and velocity
+  - **Invert**: Reverse the step sequence
+- **Density** (1-100%): Probability of placing a note on each grid position
+- **Bias** (MIDI note): Center pitch for generated notes
+- **Range** (0-48 semitones): Pitch spread around bias
+- **Note Rand** (0-100%): How much pitch varies within the range
+- **Vel Var** (0-100%): Velocity variation around center (100)
+- **Ties** (0-100%): Probability of extending a note's duration to reach the next note
+- **Gate Rand** (0-100%): Random shortening of note durations
+
+*Generated notes follow the active scale quantization and are placed on the record division grid — the same grid used for live and step recording.*
 
 ## Tracks
 
@@ -90,26 +112,6 @@ Random octave shifts per note:
 - **Destination**: Breakout, SelectBus, USB, Internal, or All
 - **Panic On Wrap**: Send all-notes-off when a track's loop wraps around
 > **Note:** MIDI input is passed through so you can play live alongside the sequencer, unless the input and output channels match.
-
-## Sequence Generation
-
-Generate or transform patterns on the active recording track:
-
-- **Generate**: Trigger generation
-- **Gen Mode**:
-  - **New**: Generate a fresh monophonic pattern from scratch
-  - **Reorder**: Shuffle existing note positions, preserving rhythm
-  - **Re-pitch**: Replace note values with new random pitches, keeping rhythm and velocity
-  - **Invert**: Reverse the step sequence
-- **Density** (1-100%): Probability of placing a note on each grid position
-- **Bias** (MIDI note): Center pitch for generated notes
-- **Range** (0-48 semitones): Pitch spread around bias
-- **Note Rand** (0-100%): How much pitch varies within the range
-- **Vel Var** (0-100%): Velocity variation around center (100)
-- **Ties** (0-100%): Probability of extending a note's duration to reach the next note
-- **Gate Rand** (0-100%): Random shortening of note durations
-
-Generated notes follow the active scale quantization.
 
 ## Display
 
