@@ -16,9 +16,11 @@ A multi-track MIDI looper plugin for the Expert Sleepers disting NT eurorack mod
 - **Rec Snap**: Quantization snap threshold (50-100%, default 75%). Controls how aggressively notes snap to the quantization grid.
 - Records note on/off and velocity. Does not record pitch bend or CC.
 
-Both live recording and step recording use the record division to determine the quantization grid. In live recording, incoming notes are snapped to the nearest grid position as they arrive. In step recording, the cursor advances by one grid unit per note entered. The grid adapts to the track length, and note duration is snapped to the nearest grid point (minimum one grid unit).
+Both live and step recording use the record division to determine the quantization grid. Durations snap to the nearest grid point (minimum one grid unit).
+- **Live recording**: notes snap to the nearest grid position.
+- **Step recording**: the cursor advances one grid unit per note.
 
-*Note that the record division is independent of the track length and playback division. A track with 32 steps and a record division of 8 has 4 recordable grid positions, but all 32 steps are still available for playback. Similarly, the playback division controls how many clock pulses advance the track by one step — it does not affect the recording grid.*
+*The record division is independent of playback. A track with 32 steps and a record division of 8 has 4 recordable grid positions — the remaining steps are only reachable with a finer record division, but all 32 steps still play back.*
 
 ### Scale Quantization
 
